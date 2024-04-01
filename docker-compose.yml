@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+
+
+  tresor-server:
+    container_name: 'tresor-server'
+    build: .
+    volumes:
+      - './:/var/www/html'
+      - '/var/www/html/vendor'
+    ports:
+      - "9999:80"
+    depends_on:
+      - db
+    restart: always
+
+
+
+  db:
+      platform: linux/x86_64
+      image: mysql:5.7
+      container_name: mysql_db_tres
+      environment:
+        MYSQL_ROOT_PASSWORD: root
+        MYSQL_DATABASE: root
+        MYSQL_USER: admin
+        MYSQL_PASSWORD: root
+      volumes:
+        - ./custom-my.cnf:/etc/mysql/my.cnf
+      ports:
+        - "3989:3306"
+
+  adminer:
+    image: adminer
+    container_name: adminertresor
+    ports:
+      - "8080:8080"
+    restart: always
