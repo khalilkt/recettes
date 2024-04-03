@@ -1759,7 +1759,7 @@ public function insertEcheance($protocol,$date,$montant)
         </table>';
         }
         $html .='<br><br><table><tr><td align="right"><b>'. trans("text_me.signature").'</b></td></tr></table>';
-dd($html);
+//dd($html);
         PDF::SetAuthor('SIDGCT');
         PDF::SetTitle('Contribuable');
         PDF::SetSubject('Contribuable');

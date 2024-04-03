@@ -23,6 +23,8 @@
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
             <div class="container">
+
+
                 <a class="navbar-brand" href="{{ url('/') }}">
                     Commune {{ \App\Models\Commune::find(env('APP_COMMUNE'))->libelle }}
                 </a>
@@ -70,5 +72,9 @@
             @yield('content')
         </main>
     </div>
+
+  <script>
+        console.log("APP_COMMUNE:", "{{ env('APP_COMMUNE') }}");
+    </script>
 </body>
 </html>

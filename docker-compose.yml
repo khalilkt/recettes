@@ -18,7 +18,6 @@ services:
 
 
   db:
-      platform: linux/x86_64
       image: mysql:5.7
       container_name: mysql_db_tres
       environment:
@@ -26,8 +25,6 @@ services:
         MYSQL_DATABASE: root
         MYSQL_USER: admin
         MYSQL_PASSWORD: root
-      volumes:
-        - ./custom-my.cnf:/etc/mysql/my.cnf
       ports:
         - "3989:3306"
 
