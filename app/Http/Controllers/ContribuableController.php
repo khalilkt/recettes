@@ -63,10 +63,6 @@ class ContribuableController extends Controller
     {
         $annee= $this->annee_encours();
         $contribuales = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
-        // get contribuables in the range of start_date and end_date
-
-        $start_date = date('Y-m-d', strtotime('2021-01-01'));
-        $end_date = date('Y-m-d', strtotime('2021-12-31'));
 
         if ($type != 'all') {
             if ($type == 0 or $type == 1 or $type == 'f'){
@@ -1584,8 +1580,6 @@ public function insertEcheance($protocol,$date,$montant)
         }
         if ($filtrage==2)
         {
-
-
             $payements = App\Models\DegrevementContribuable::where('annee', $annee)->where('montant','<>',0)->where('created_at','>=', $date1)->where('created_at','<=', $date2)->get();
             $idc = env('APP_COMMUNE');
             $commune = Commune::find($idc);
@@ -1652,7 +1646,12 @@ public function insertEcheance($protocol,$date,$montant)
         if ($filtrage==3)
         {
             $libelleRole='';
+            $start_time_contr  = Carbon::now();
+
             $contribuables =Contribuable::all();
+            $end_time_contr = Carbon::now();
+            $time_contr = $end_time_contr->diffInSeconds($start_time_contr);
+
             $idc = env('APP_COMMUNE');
             $commune = Commune::find($idc);
             $entete_id = EnteteCommune::where('commune_id', $idc)->get()->first()->id;
@@ -1718,7 +1717,8 @@ public function insertEcheance($protocol,$date,$montant)
                     </tr>
                     ';
             $montants =0;
-           dd($contribuables);
+        //    dd($contribuables);
+            $start_time_loop  = Carbon::now();
             foreach ($contribuables as $contribuable)
             {
               //  $listeroles=App\Models\RolesContribuable::where('contribuable_id',)
@@ -1747,6 +1747,14 @@ public function insertEcheance($protocol,$date,$montant)
                     $html .=$this->contribuablePartie($contribuable->id,$annee,$montantresr,$role);
                // }
             }
+            $end_time_loop = Carbon::now();
+            $time_loop = $end_time_loop->diffInSeconds($start_time_loop);
+            dump(
+                "{
+                'time_contr' => $time_contr,
+                'time_loop' => $time_loop
+            }"
+            );
 
 
             $html .='</tbody> </table>
@@ -1759,7 +1767,7 @@ public function insertEcheance($protocol,$date,$montant)
         </table>';
         }
         $html .='<br><br><table><tr><td align="right"><b>'. trans("text_me.signature").'</b></td></tr></table>';
-//dd($html);
+// dd($html);
         PDF::SetAuthor('SIDGCT');
         PDF::SetTitle('Contribuable');
         PDF::SetSubject('Contribuable');
@@ -2010,9 +2018,9 @@ public function insertEcheance($protocol,$date,$montant)
        return $html;
         }
     }
-    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2)
+    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage)
     {
-        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2), ''.trans("text_me.suiviContribuable1").'.xlsx');
+        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage), ''.trans("text_me.suiviContribuable1").'.xlsx');
     }
 
     public function exporterListeprotocolEch(){
