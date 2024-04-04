@@ -53,7 +53,13 @@ class ExportContribuable implements FromView,ShouldAutoSize
         $commune = Commune::find($idc);
         $entete_id = EnteteCommune::where('commune_id', $idc)->get()->first()->id;
         $entete = EnteteCommune::find($entete_id);
-        $lib = trans("text_me.suiviContribuable1");
+        if ($this->filtrage== 1){
+
+            $lib = trans("text_me.suiviContribuable1");
+        }else if ($this->filtrage== 2){
+
+        $lib = trans("text_me.suiviContribuable2");
+        }
         $conreoller = new EmployeController();
         $enetet = $conreoller->entete(  $lib.' '.$this->annee);
         $html = '';
@@ -78,6 +84,7 @@ class ExportContribuable implements FromView,ShouldAutoSize
                 </table>
                 </div><br>';
         }
+        $montants=0;
 
         if ($this->filtrage == 1){
 
@@ -96,7 +103,6 @@ class ExportContribuable implements FromView,ShouldAutoSize
                     // $payements = $payements->where('date', '>=',$date1 )->where('date', '<=', $date2);
                     $payements = $payements->where('date','>=', $this->date1)->where('date','<=', $this->date2);
                 }
-            $montants=0;
             $html .='<table border="1" width="100%" class="normal" >
             <thead>
             <tr bgcolor="#add8e6">
@@ -118,8 +124,7 @@ class ExportContribuable implements FromView,ShouldAutoSize
                 }
         }
         if ($this->filtrage == 2){
-            $payements = App\Models\DegrevementContribuable::where('annee', $annee)->where('montant','<>',0)->where('created_at','>=', $date1)->where('created_at','<=', $date2)->get();
-            $montants=0;
+            $payements = DegrevementContribuable::where('annee', $this->annee)->where('montant','<>',0)->where('created_at','>=', $this->date1)->where('created_at','<=', $this->date2)->get();
             $html .='<table border="1" width="100%" class="normal" >
             <thead>
             <tr bgcolor="#add8e6">
@@ -139,17 +144,11 @@ class ExportContribuable implements FromView,ShouldAutoSize
                 $html .='<td>'.$payement->decision.'</td>';
                 $html .='<td>'.$payement->montant.'</td>';
                 $html .='</tr>';
-                $montants +=$payement->montants;
+                $montants +=$payement->montant;
+                
             }
 
         }
-
-
-
-
-
-
-
         $html .='<tr>';
         $html .='<td colspan="2" align=""><b>'. trans("text_me.total") .'</b></td>';
         $html .='<td><b>'.number_format((float)$montants,2).'</b></td>';
