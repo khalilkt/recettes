@@ -1579,7 +1579,7 @@ public function insertEcheance($protocol,$date,$montant)
         }
         if ($filtrage==2)
         {
-            $payements = App\Models\DegrevementContribuable::where('annee', $annee)->where('montant','<>',0)->where('created_at','>=', $date1)->where('created_at','<=', $date2)->get();
+            $payements = App\Models\DegrevementContribuable::where('annee', $annee)->where('montant','<>',0)->where('created_at','>=', $date1)->where('created_at','<=', $date2)->orderBy('created_at', 'desc')->get();
             $idc = env('APP_COMMUNE');
             $commune = Commune::find($idc);
             $entete_id = EnteteCommune::where('commune_id', $idc)->get()->first()->id;
@@ -1609,17 +1609,20 @@ public function insertEcheance($protocol,$date,$montant)
             $montants=0;
             $html .= '<table width="100%"   border="1" cellspacing="0" cellpadding="0">
                     <tr>
-                        <td align="center" style="width:30%">
+                        <td align="center" style="width:40%">
                             <b>Contribuable</b>
                         </td>
                         <td style="width:15%">
                             <b>Adresse</b>
                         </td>
-                        <td style="width:40%;">
+                        <td style="width:20%;">
                             <b>Decision</b>
                         </td>
                          <td style="width:15%">
                             <b>Montant </b>
+                        </td>
+                         <td style="width:10%">
+                            <b>Date </b>
                         </td>
                    </tr>
                     ';
@@ -1748,12 +1751,12 @@ public function insertEcheance($protocol,$date,$montant)
             }
             $end_time_loop = Carbon::now();
             $time_loop = $end_time_loop->diffInSeconds($start_time_loop);
-            dump(
-                "{
-                'time_contr' => $time_contr,
-                'time_loop' => $time_loop
-            }"
-            );
+            // dump(
+            //     "{
+            //     'time_contr' => $time_contr,
+            //     'time_loop' => $time_loop
+            // }"
+            // );
 
 
             $html .='</tbody> </table>
@@ -1918,6 +1921,7 @@ public function insertEcheance($protocol,$date,$montant)
             $html .= '
                 <td >' . $payement->decision . '</td>
                 <td >' . $payement->montant . '</td>
+                <td >' . Carbon::parse($payement->created_at)->format('Y-m-d') . '</td>
                 </tr>
                ';
 
@@ -2018,8 +2022,14 @@ public function insertEcheance($protocol,$date,$montant)
         }
     }
     public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage)
-    {
-        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage), ''.trans("text_me.suiviContribuable1").'.xlsx');
+    {   $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
+        if ($filtrage==1){
+           $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
+        }
+        else if ($filtrage==2){
+            $name = ''.trans("text_me.suiviContribuable2").'.xlsx';
+        }
+        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage), $name);
     }
 
     public function exporterListeprotocolEch(){
