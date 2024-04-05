@@ -1438,12 +1438,12 @@ public function insertEcheance($protocol,$date,$montant)
             $payementprotocoles = App\Models\Payement::where('annee', $annee)->where('montant','<>',0)->where('date','>=', $date1)->where('date','<=', $date2)->get();
             if ($role !='all')
             {
-                $payements = App\Models\Payementmens::where('annee', $annee)->where('role_id', $role)->where('montant','<>',0)->where('date','>=', $date1)->where('date','<=', $date2)->get();
+                $payements = App\Models\Payementmens::where('annee', $annee)->where('role_id', $role)->where('montant','<>',0)->where('date','>=', $date1)->where('date','<=', $date2)->orderBy('date', 'desc')->get();
                 $roleli=App\Models\RolesAnnee::find($role);
                 $libelleRole='<br>Rôle : <b>'.$roleli->libelle.'</b>';
             }
             else{
-                $payements = App\Models\Payementmens::where('annee', $annee)->where('montant','<>',0)->where('date','>=', $date1)->where('date','<=', $date2)->get();
+                $payements = App\Models\Payementmens::where('annee', $annee)->where('montant','<>',0)->where('date','>=', $date1)->where('date','<=', $date2)->orderBy('date', 'desc')->get();
             }
         $idc = env('APP_COMMUNE');
         $commune = Commune::find($idc);
@@ -1504,7 +1504,6 @@ public function insertEcheance($protocol,$date,$montant)
         {
 
            $html .=$this->situationpayement($payement->id);
-           //dd($payement);
             $montants +=$payement->montant;
         }
         $html .='</tbody> </table>
