@@ -4,7 +4,7 @@
 
 @endsection
 @section('top-page-btn')
-    <div class="card shadow">
+    <div class="card shadow col-12">
         <div class="card-header">
             <div class="d-flex flex-row justify-content-between ">
                 <div class="d-flex flex-column flex-lg-row filters-item ">
