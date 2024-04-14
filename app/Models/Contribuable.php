@@ -58,6 +58,12 @@ class Contribuable extends Eloquent
         'montant'
 	];
 
+	public function roles()
+    {
+        return $this->hasMany(RolesContribuable::class);
+    }
+	
+
 	public function ref_taille_activite()
 	{
 		return $this->belongsTo(\App\Models\RefTailleActivite::class);

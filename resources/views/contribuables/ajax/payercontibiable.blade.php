@@ -11,7 +11,7 @@
 
                     <div class="card-body">
                      <div class="row">
-                        <div class="col-md-6 form-group">
+                        <div id = "asdsasdas_id" class="col-md-6 form-group">
                             <label for="">{{ trans('text_me.contribuable') }}<span class="required_field" data-toggle="tooltip" data-placement="right" title="{{ trans('text.champ_obligatoire') }}">*</span></label>
                             <select id="contribuable"  name="contribuable" data-live-search="true" class="selectpicker form-control" onchange="selectionnerContribuable({{$annee}})"  >
                             <option value="" >{{ trans('text_me.tous') }}</option>

@@ -33,7 +33,6 @@
                                 </div>
                             </div>
 
-
                             <div class="col-md-4 filters-item">
                                 <div class="filters-label">
                                     <i class="fa fa-filter"></i> {{ trans('text_me.Du') }}
@@ -49,6 +48,17 @@
                                 <div class="filters-input">
                                     <input id="date2"  name="date2"  class="form-control" type="date" onchange="filterContribuableDate({{$annee}})" >
                                 </div>
+                            </div>
+                            <div id = "div_contr_created_at" class="col-md-4 filters-item mt-3" style="display: none;">
+                                <div class="filters-label mb-1">
+                                    <i class="fa fa-filter"></i>Contribuables Créer au
+                                </div>
+                                <select class="selectpicker form-control" id="contr_created_at_select" name="contr_created_at_select">
+                                   @foreach (["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"] as $key => $month)
+                                    <option value="{{$key + 1}}" >{{$month}}</option>
+                                   @endforeach
+                                
+                                </select>
                             </div>
                     </div>
                     </div>

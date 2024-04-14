@@ -59,11 +59,14 @@ class ContribuableController extends Controller
         return view($this->module.'.index',['annees'=>$annees,'annee'=>$annee,'nbrproEchen'=>$nbrproEchen,'roles'=>$roles]);
     }
 
+
     public function getDT($type,$selected='all')
     {
         $annee= $this->annee_encours();
-        $contribuales = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
+    
 
+
+        $contribuales = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
         if ($type != 'all') {
             if ($type == 0 or $type == 1 or $type == 'f'){
                 if ($type == 0 or $type == 1){
@@ -82,7 +85,7 @@ class ContribuableController extends Controller
             $contribuales = $contribuales->orderByRaw('id = ? desc', [$selected])->with('activite','ref_taille_activite','ref_emplacement_activite') ->whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
         return DataTables::of($contribuales)
 
-            ->addColumn('actions', function(Contribuable $contribuale) {
+            ->addColumn('actions', function(Contribuable $contribuale) use ($annee){
                 $html = '<div class="btn-group">';
                 $html .=' <button type="button" class="btn btn-sm btn-dark" onClick="openObjectModal('.$contribuale->id.',\''.$this->module.'\')" data-toggle="tooltip" data-placement="top" title="'.trans('text.visualiser').'"><i class="fa fa-fw fa-eye"></i></button> ';
                 if(Auth::user()->hasAccess(9,4)) {
@@ -90,8 +93,12 @@ class ContribuableController extends Controller
                 }
 
                 if(Auth::user()->hasAccess(9,4)) {
-                    $html .= '<button type="button" class="btn btn-sm btn-success" onClick="sutiationcontribuablePDF(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="Situation Fiscale"><i class="fas fa-fw fa-money-bill-alt"></i></button>';
+                    $html .= '<button type="button" class="btn btn-sm btn-dark" onClick="payercontibiable(\'' . $annee . '\', \'' . $contribuale->id . '\', \'' . $contribuale->libelle. '\')" data-toggle="tooltip" data-placement="top" title="' . "Ajouter un payement" . '"><i class="fas fa-fw fa-file-invoice-dollar"></i></button>';
                 }
+
+                if(Auth::user()->hasAccess(9,4)) {
+                    $html .= '<button type="button" class="btn btn-sm btn-success" onClick="sutiationcontribuablePDF(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="Situation Fiscale"><i class="fas fa-fw fa-money-bill-alt"></i></button>';
+                } 
 
                if(Auth::user()->hasAccess(9,4)) {
                    $annee= $this->annee_encours();
@@ -148,11 +155,35 @@ class ContribuableController extends Controller
                 $annee= $this->annee_encours();
                 $role=App\Models\RolesContribuable::where('contribuable_id',$contribuale->id)->
                 where('annee',$annee)->get();
-                $mt=0;
+                $montantdue = 0;
                 foreach ($role as $rol){
-                    $mt += $rol->montant;
+                    $montantdue += $rol->montant;
                 }
-                $html = $mt;
+                
+                $payements = Payement::where('contribuable_id', $contribuale->id)->where('annee', $annee)->get();
+                $payementNrs = App\Models\Payementmens::where('contribuable_id', $contribuale->id)->where('annee', $annee)->get();
+
+                $motantPayes = 0;
+                foreach ($payements as $payement) {
+                    $detatPays = DetailsPayement::where('payement_id', $payement->id)->get();
+                    foreach ($detatPays as $detatPa) {
+                        $motantPayes += $detatPa->montant;
+                    }
+                }
+                foreach ($payementNrs as $payement) {
+                    $detatPays = App\Models\DetailsPayementmens::where('payement_id', $payement->id)->get();
+                    foreach ($detatPays as $detatPa) {
+                        $motantPayes += $detatPa->montant;
+                    }
+                }
+                
+                $degrevements = App\Models\DegrevementContribuable::where('contribuable_id', $contribuale->id)->where('annee', $annee)->get();
+                $montantdegr = 0;
+                foreach ($degrevements as $degrevement) {
+                    $montantdegr += $degrevement->montant;
+                }
+
+                $html = $montantdue -$motantPayes-$montantdegr;
                 return $html;
             })
             ->addColumn('Roles', function(Contribuable $contribuale) {
@@ -939,8 +970,9 @@ class ContribuableController extends Controller
         $montantCash=(float)($montantP);
         $montantPP=(float)($montantP);
         // $n=$request->id;
-         $article=$request->article;
-         $roleCont=App\Models\RolesContribuable::find($article);
+        $article=$request->article;
+        $roleCont=App\Models\RolesContribuable::find($article);
+        
          if ($request->typePayement==6)
          {
              if ($request->montant!='')
@@ -987,7 +1019,11 @@ class ContribuableController extends Controller
              }
              return response()->json($document->id,200);
          }
-         else{
+        else{
+            try{
+
+           
+           
         $montant_paye=$montantPP+$roleCont->montant_paye;
         $roleCont->montant_paye=$montant_paye;
         $restmontant=$roleCont->montant-$montant_paye;
@@ -997,9 +1033,10 @@ class ContribuableController extends Controller
         $element = BudgetDetail::where('budget_id', $last_id_budget)->where('nomenclature_element_id', $nomenclature_element_id)->get()->first();
         //$element = BudgetDetail::where('budget_id', $last_id_budget)->where('nomenclature_element_id', $nomenclature_element_id)->get()->first();
         //dd($element);
+        // dd($last_id_budget);
         $nomeMontantFinal =$element->montant_realise+$montantPP;
         if ($request->montant!='')
-        {
+        {   
             $payement= new App\Models\Payementmens();
 
             $n=BudgetDetail::find($element->id);
@@ -1039,6 +1076,13 @@ class ContribuableController extends Controller
 
         }
              return response()->json($payement->id,200);
+            
+            }catch(Exception $e){
+                error_log($e->getMessage());
+                
+                dd($e);
+
+            }
          }
 
 
@@ -1355,8 +1399,9 @@ public function insertEcheance($protocol,$date,$montant)
     public function suiviContibuable($annee){
         $module= Module::find(5);
         $annee=$this->annee_encours();
-       // $contribuables = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))->get();
+        // $contribuables = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))->get();
         $mois=Mois::all();
+
         return view($this->module . '.ajax.filtrage', ['annee' => $annee ,'mois' => $mois,'module' => $module]);
     }
 
@@ -1430,7 +1475,7 @@ public function insertEcheance($protocol,$date,$montant)
             ->make(true);
     }
 
-    public function pdfSuiviPayementCtb($annee,$filtrage,$date1,$date2,$role='all')
+    public function pdfSuiviPayementCtb($annee,$filtrage,$date1,$date2,$role='all', $contr_created_at_month = "all")
     {
         if ($filtrage==1)
         {
@@ -1650,7 +1695,32 @@ public function insertEcheance($protocol,$date,$montant)
             $libelleRole='';
             $start_time_contr  = Carbon::now();
 
-            $contribuables =Contribuable::all();
+            // $contribuables =Contribuable::all();
+            
+            // $contribuables = Contribuable::with(['roles' => function ($query) use ($annee, $role) {
+            //     $query->where('annee', $annee);
+            //     if ($role != 'all') {
+            //         $query->where('id', $role);
+            //     }
+            // }])
+            
+            // ->whereMonth('created_at', $contr_created_at_month)
+        
+            // // ->take(100)
+            // ->get();
+
+            $contribuables = Contribuable::whereIn('id', function($query) use ($annee) {
+                $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $annee);
+            })->with(['roles' => function ($query) use ($annee, $role) {
+                $query->where('annee', $annee);
+                if ($role != 'all') {
+                    $query->where('id', $role);
+                }
+            }])
+            ->whereMonth('created_at', $contr_created_at_month)
+            ->get();
+            
+
             $end_time_contr = Carbon::now();
             $time_contr = $end_time_contr->diffInSeconds($start_time_contr);
 
@@ -1672,7 +1742,10 @@ public function insertEcheance($protocol,$date,$montant)
             if ($role !='all')
             {
                 $roleli=App\Models\RolesAnnee::find($role);
-                $libelleRole='<br>Rôle : <b>'.$roleli->libelle.'</b>';
+                if ($roleli){
+
+                    $libelleRole='<br>Rôle : <b>'.$roleli->libelle.'</b>';
+                }
 
             }
 
@@ -1723,20 +1796,20 @@ public function insertEcheance($protocol,$date,$montant)
             $start_time_loop  = Carbon::now();
             foreach ($contribuables as $contribuable)
             {
-              //  $listeroles=App\Models\RolesContribuable::where('contribuable_id',)
-                if ($role !='all')
-                {
-                    $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
-                            where('annee', $annee)->where('id', $role)->get();
-                }
-                else{
-                    $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
-                    where('annee', $annee)->get();
-              }
+            //     if ($role !='all')
+            //     {
+            //         $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
+            //                 where('annee', $annee)->where('id', $role)->get();
+            //     }
+            //     else{
+            //         $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
+            //         where('annee', $annee)->get();
+            //   }
 
                 $montantresr=$montantde=$montant_paye=$montantdgr=0;
 
-                foreach ($roles as $rol){
+                // foreach ($roles as $rol){
+                foreach ($contribuable->roles as $rol){
                     $montantde +=$rol->montant;
                     $montant_paye += $rol->montant_paye;
                 }
@@ -1747,14 +1820,15 @@ public function insertEcheance($protocol,$date,$montant)
                     $montants +=$montantresr;
                    // if ($contribuable->id !=72)
                     $html .=$this->contribuablePartie($contribuable->id,$annee,$montantresr,$role);
+                    // $html .= $contribuable->id;
                // }
             }
             $end_time_loop = Carbon::now();
-            $time_loop = $end_time_loop->diffInSeconds($start_time_loop);
-            // dump(
+            $time_loop = $end_time_loop->diffInMilliseconds($start_time_loop);
+            // dd(
             //     "{
             //     'time_contr' => $time_contr,
-            //     'time_loop' => $time_loop
+            //     'time_loop' => $time_loop,
             // }"
             // );
 
@@ -1768,8 +1842,9 @@ public function insertEcheance($protocol,$date,$montant)
             $html .='
         </table>';
         }
+        // dd(strlen($html));
         $html .='<br><br><table><tr><td align="right"><b>'. trans("text_me.signature").'</b></td></tr></table>';
-// dd($html);
+        // dd($html);
         PDF::SetAuthor('SIDGCT');
         PDF::SetTitle('Contribuable');
         PDF::SetSubject('Contribuable');
@@ -1781,7 +1856,9 @@ public function insertEcheance($protocol,$date,$montant)
         PDF::SetFont('dejavusans', '', 10);
         PDF::writeHTML($html, true, false, true, false, '');
         PDF::Output(uniqid().'liste_emp.pdf');
+    
     }
+
     public function contribuablePartie($id,$annee,$montantresr,$role)
     {
         $contribuable = Contribuable::find($id);
@@ -1791,32 +1868,34 @@ public function insertEcheance($protocol,$date,$montant)
         $roles = App\Models\RolesContribuable::where('contribuable_id', $id)->
         where('annee', $annee)->get();
         $degrevements = App\Models\DegrevementContribuable::where('contribuable_id', $id)->where('annee', $annee)->get();
-        foreach ($degrevements as $deg)
-        {
-            $montantdue +=$deg->montant;
-        }
+        // foreach ($degrevements as $deg)
+        // {
+        //     $montantdue +=$deg->montant;
+        // }
         foreach ($roles as $role) {
             if ($role->emeregement!=''){
                 $impots =$role->emeregement;
             }
         }
-        $roles = App\Models\RolesContribuable::where('contribuable_id', $id)->
-        where('annee', $annee)->get();
         if ($roles->count()){
-            $nbrroles=1;
+            // $nbrroles=1;
+            $nbrroles=$roles->count();
         }
         else{
             $nbrroles=1;
         }
+        if ($nbrroles < 1){
+            $nbrroles=1;
+        }
 
         // $html = $role;
-        // $montantdue = 0;
+        $montantdue = 0;
         $html='';$html1='';
         $html1 .='<td colspan="3"><table border="0" style="width: 100%;">';
         foreach ($roles as $role) {
-            if ($role->emeregement!=''){
+            // if ($role->emeregement!=''){
 
-            }
+            // }
             $rr=App\Models\RolesAnnee::find($role->role_id);
             $articles .= ''.$role->article .'<br> ';
             $montantdue += $role->montant;
@@ -1872,27 +1951,28 @@ public function insertEcheance($protocol,$date,$montant)
         $rstap=$montantdue -$motantPayes-$montantdegr;
         if ($contribuable and $rstap>0){
         $html .= '      <tr>
-                        <td style="width: 15%;" align="center" rowspan="'.$nbrroles.'">
+                        <td  align="center" >
                             <b>'.$contribuable->libelle.' </b>
                         </td>
-                        <td style="width:10% ;" rowspan="'.$nbrroles.'">
+                        <td  >
                             '.$contribuable->adresse.'
                         </td>
-                        <td style="width:10% ;" rowspan="'.$nbrroles.'">
+                        <td  >
                            '.$impots.'
                         </td>
-                        <td style="width:10% ;" rowspan="'.$nbrroles.'">
+                        <td  >
                              ' . $annee . '
                         </td>';
         $html .=$html1;
+        // $html .= ' <td colspan="3" >"'.$nbrroles.'"</td>';
         $html.='
-                        <td style="width:8% ;" rowspan="'.$nbrroles.'">
+                        <td >
                             '.strrev(wordwrap(strrev($montantdue), 3, ' ', true)).'
                         </td>
-                        <td style="width:10% ;" rowspan="'.$nbrroles.'">
+                        <td  >
                             '.strrev(wordwrap(strrev($montantdegr), 3, ' ', true)).'
                         </td>
-                         <td style="width:10% ;" rowspan="'.$nbrroles.'">
+                         <td  >
                            '.strrev(wordwrap(strrev($rstap), 3, ' ', true)).'
                         </td>
                     </tr>
@@ -2021,15 +2101,17 @@ public function insertEcheance($protocol,$date,$montant)
        return $html;
         }
     }
-    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage)
+    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month)
     {   $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
         if ($filtrage==1){
            $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
         }
         else if ($filtrage==2){
             $name = ''.trans("text_me.suiviContribuable2").'.xlsx';
+        }else if ($filtrage==3){
+            $name = ''.trans("suivirecouvrement").'.xlsx';
         }
-        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage), $name);
+        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month), $name);
     }
 
     public function exporterListeprotocolEch(){

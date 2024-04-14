@@ -113,8 +113,8 @@ Route::group(['prefix' => 'contribuables/', 'middleware' => 'roles','roles' => [
     Route::get('recuperemontant/{id}','ContribuableController@recuperemontant');
     Route::get('recuperemontant1/{id}/{echance}','ContribuableController@recuperemontant1');
     Route::get('getPayementAnnne/{annee}/{contr}/{date1}/{date2}','ContribuableController@getPayementAnnne');
-    Route::get('pdfSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{role}','ContribuableController@pdfSuiviPayementCtb');
-    Route::get('excelSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{filtrage}','ContribuableController@excelSuiviPayementCtb');
+    Route::get('pdfSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{role}/{contr_created_at_month}','ContribuableController@pdfSuiviPayementCtb');
+    Route::get('excelSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{filtrage}/{contr_created_at_month}','ContribuableController@excelSuiviPayementCtb');
     Route::get('newPayement/{id}','ContribuableController@newPayement');
     Route::get('newPayementPv/{id}','ContribuableController@newPayementPv');
     Route::get('annulerRole/{id}','ContribuableController@annulerRole');

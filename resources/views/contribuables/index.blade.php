@@ -12,7 +12,7 @@
                     <div class="mb-1">
                         {{ trans('text_me.contribuables') }}
                 </div>
-                        <select class="selectpicker mr-sm-2" onchange="changerAnnee()" id="annee">
+                        <select  class="selectpicker mr-sm-2" onchange="changerAnnee()" id="annee">
                             <option value="{{$annee->id}}" selected>{{$annee->annee}}</option>
                             @foreach($annees as $an)
                                 @if($an->annee != $annee->annee)

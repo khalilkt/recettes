@@ -9,7 +9,6 @@ use App\Models\Contribuable;
 use App\Models\EnteteCommune;
 use App\Models\Equipement;
 use App\Models\NomenclatureElement;
-use App\Models\Payement;
 use App\Models\Payementmens;
 use App\Models\DegrevementContribuable;
 use Carbon\Carbon;
@@ -17,6 +16,14 @@ use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use DB;
+use App\Models\DetailsPayement;
+use App\Models\DetailsPayementmens;
+use App\Models\RolesAnnee;
+use App\Models\Annee;
+use App\Models\RolesContribuable;
+
+use App\Models\Payement;
+
 
 use Illuminate\Support\Facades\Log;
 class ExportContribuable implements FromView,ShouldAutoSize
@@ -26,14 +33,22 @@ class ExportContribuable implements FromView,ShouldAutoSize
     public $date1;
     public $date2;
     public $filtrage;
+    public $role;
+    public $contr_created_at_month;
 
-    public function __construct($annee,$contr,$date1,$date2, $filtrage)
+    private $restmontrecouv = 0;
+
+
+    public function __construct($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month)
     {
         $this->annee=$annee;
         $this->contr=$contr;
         $this->date1=$date1;
         $this->date2=$date2;
         $this->filtrage=$filtrage;
+        $this->role = 'all';
+
+        $this->contr_created_at_month = $contr_created_at_month;
     }
 
     public function view():View
@@ -54,12 +69,13 @@ class ExportContribuable implements FromView,ShouldAutoSize
         $entete_id = EnteteCommune::where('commune_id', $idc)->get()->first()->id;
         $entete = EnteteCommune::find($entete_id);
         if ($this->filtrage== 1){
-
             $lib = trans("text_me.suiviContribuable1");
         }else if ($this->filtrage== 2){
-
-        $lib = trans("text_me.suiviContribuable2");
+            $lib = trans("text_me.suiviContribuable2");
+        } else if ($this->filtrage== 3){
+            $lib = trans("suivirecouvrement");
         }
+
         $conreoller = new EmployeController();
         $enetet = $conreoller->entete(  $lib.' '.$this->annee);
         $html = '';
@@ -148,6 +164,63 @@ class ExportContribuable implements FromView,ShouldAutoSize
                 
             }
 
+        }else if ($this->filtrage == 3){
+            $html .='<table border="1" width="100%" class="normal" >
+            <thead>
+            <tr bgcolor="#add8e6">
+            <th><b>Contribuable</b></th>
+            <th><b>Adresse</b></th>
+            <th><b>Impôts</b></th>
+            <th><b>Année</b></th>
+            <th><b>Article</b></th>
+            <th><b>Rôle</b></th>
+            <th><b>Montant</b></th>
+            <th><b>Montant due</b></th>
+            <th><b>Degrevement</b></th>
+            <th><b>Reste à payer</b></th>
+            </tr>
+            </thead>
+            <tbody>';
+            $contribuables = Contribuable::whereIn('id', function($query) {
+                $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $this->annee);
+            })->with(['roles' => function ($query) {
+                $query->where('annee', $this->annee);
+                if ($this->role != 'all') {
+                    $query->where('id', $this->role);
+                }
+            }])
+            ->whereMonth('created_at', $this->contr_created_at_month)
+            ->get();
+            foreach ($contribuables as $contribuable)
+            {
+            //     if ($role !='all')
+            //     {
+            //         $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
+            //                 where('annee', $annee)->where('id', $role)->get();
+            //     }
+            //     else{
+            //         $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
+            //         where('annee', $annee)->get();
+            //   }
+
+                $montantresr=$montantde=$montant_paye=$montantdgr=0;
+
+                // foreach ($roles as $rol){
+                foreach ($contribuable->roles as $rol){
+                    $montantde +=$rol->montant;
+                    $montant_paye += $rol->montant_paye;
+                }
+
+                $montantresr = $montantde-$montant_paye;
+
+                //if ($montantresr>0){
+                    $montants +=$montantresr;
+                   // if ($contribuable->id !=72)
+                    $html .= $this->contribuablePartie($contribuable->id,$this->annee,$montantresr,$this->role);
+                    // $html .= $contribuable->id;
+               // }
+            }
+            
         }
         $html .='<tr>';
         $html .='<td colspan="2" align=""><b>'. trans("text_me.total") .'</b></td>';
@@ -159,6 +232,130 @@ class ExportContribuable implements FromView,ShouldAutoSize
         $html = str_replace(' & ', ' &amp; ', $html);
         return view('contribuables.exports.export_contribuables',['html' =>$html]);
     }
+
+    public function contribuablePartie($id,$annee,$montantresr,$role)
+    {
+        $contribuable = Contribuable::find($id);
+        $impots = 'CF';
+        $nbrroles=0;
+        $montantdue = 0;$articles='';
+        $roles = RolesContribuable::where('contribuable_id', $id)->
+        where('annee', $annee)->get();
+        $degrevements = DegrevementContribuable::where('contribuable_id', $id)->where('annee', $annee)->get();
+        // foreach ($degrevements as $deg)
+        // {
+        //     $montantdue +=$deg->montant;
+        // }
+        foreach ($roles as $role) {
+            if ($role->emeregement!=''){
+                $impots =$role->emeregement;
+            }
+        }
+        if ($roles->count()){
+            // $nbrroles=1;
+            $nbrroles=$roles->count();
+        }
+        else{
+            $nbrroles=1;
+        }
+        if ($nbrroles < 1){
+            $nbrroles=1;
+        }
+
+        // $html = $role;
+        $montantdue = 0;
+        $html='';$html1='';
+        $html1 .='<td colspan="3"><table border="0  ">';
+        foreach ($roles as $role) {
+            // if ($role->emeregement!=''){
+
+            // }
+            $rr=RolesAnnee::find($role->role_id);
+            $articles .= ''.$role->article .'<br> ';
+            $montantdue += $role->montant;
+            $html1 .='<tr>
+            <td  align="left" >
+            '.$role->article.'
+            </td>
+            <td  align="left" >
+            '.$rr->libelle.'
+            </td>
+            <td align="right" >
+            '.strrev(wordwrap(strrev($role->montant), 3, ' ', true)).'
+            </td>
+            </tr>';
+        }
+        $html1 .='</table></td>';
+        $roles1 = RolesAnnee::where('annee', $annee)->get();
+
+        // $html = $role;
+
+        $roless='';
+        foreach ($roles1 as $role) {
+            $rolecont = $roles = RolesContribuable::where('contribuable_id', $id)->
+            where('role_id', $role->id)->get();
+            if ($rolecont->count() > 0) {
+                $roless .= '' . $role->libelle . '<br> ';
+            }
+        }
+
+        $montantdegr = 0;
+        $motantPayes = 0;
+        $annee_id = Annee::where('etat', 1)->get()->first()->id;
+        $payements = Payement::where('contribuable_id', $id)->where('annee', $annee)->get();
+        $payementNrs = Payementmens::where('contribuable_id', $id)->where('annee', $annee)->get();
+        foreach ($payements as $payement) {
+            $detatPays = DetailsPayement::where('payement_id', $payement->id)->get();
+            foreach ($detatPays as $detatPa) {
+                $motantPayes += $detatPa->montant;
+            }
+        }
+        foreach ($payementNrs as $payement) {
+            $detatPays = DetailsPayementmens::where('payement_id', $payement->id)->get();
+            foreach ($detatPays as $detatPa) {
+                $motantPayes += $detatPa->montant;
+            }
+        }
+        if ($degrevements->count()>0){
+            foreach ($degrevements as $degrevement) {
+                $montantdegr += $degrevement->montant;
+            }
+        }
+        $rstap=0;
+        $rstap=$montantdue -$motantPayes-$montantdegr;
+        if ($contribuable and $rstap>0){
+        $html .= '      <tr>
+                        <td  align="center" >
+                            <b>'.$contribuable->libelle.' </b>
+                        </td>
+                        <td  >
+                            '.$contribuable->adresse.'
+                        </td>
+                        <td  >
+                           '.$impots.'
+                        </td>
+                        <td  >
+                             ' . $annee . '
+                        </td>';
+        $html .=$html1;
+        // $html .= ' <td colspan="3" >"'.$nbrroles.'"</td>';
+        $html.='
+                        <td >
+                            '.strrev(wordwrap(strrev($montantdue), 3, ' ', true)).'
+                        </td>
+                        <td  >
+                            '.strrev(wordwrap(strrev($montantdegr), 3, ' ', true)).'
+                        </td>
+                         <td  >
+                           '.strrev(wordwrap(strrev($rstap), 3, ' ', true)).'
+                        </td>
+                    </tr>
+                    ';
+            $this->restmontrecouv +=$rstap;
+        }
+        return $html;
+    }
+
 }
 
 

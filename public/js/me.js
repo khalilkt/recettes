@@ -1693,6 +1693,84 @@ function filterTypePayement() {
     .load();
 }
 
+function chnageStatsRole(roleId) {}
+
+function changeStatsYear() {
+  // change the window location to /?year=year
+  year = $("#stats_year_select").val();
+  window.location = racine + "?annee=" + year;
+}
+
+function changeSelectedRole(roleId) {
+  url = new URL(window.location.href);
+
+  if (!roleId) {
+    url.searchParams.delete("role");
+  } else {
+    url.searchParams.set("role", roleId);
+  }
+  window.location = url.href;
+}
+
+function changeSelectedStatsDate() {
+  selectedMonth = $("#stats_month_select").val();
+  selectedDay = $("#stats_day_select").val();
+
+  url = new URL(window.location.href);
+  url.searchParams.set("mois", selectedMonth);
+  url.searchParams.set("jour", selectedDay);
+  if (selectedMonth == null) {
+    url.searchParams.delete("mois");
+    url.searchParams.delete("jour");
+  } else if (selectedDay == null) {
+    url.searchParams.delete("jour");
+  }
+  window.location = url.href;
+}
+
+function nextDayOrMonth(next = true) {
+  url = new URL(window.location.href);
+  selectedYear = url.searchParams.get("annee");
+  selectedMonth = url.searchParams.get("mois");
+  selectedDay = url.searchParams.get("jour");
+  didChangeYear = false;
+
+  if (!selectedMonth) {
+    return;
+  }
+
+  if (selectedDay == null) {
+    selectedMonth = parseInt(selectedMonth) + (next ? 1 : -1);
+    if (selectedMonth > 12) {
+      selectedMonth = 1;
+      selectedYear = parseInt(selectedYear) + 1;
+      didChangeYear = true;
+    }
+    if (selectedMonth < 1) {
+      selectedMonth = 12;
+      selectedYear = parseInt(selectedYear) - 1;
+      didChangeYear = true;
+    }
+  } else {
+    date = new Date(selectedYear, selectedMonth, selectedDay);
+    date.setDate(date.getDate() + (next ? 1 : -1));
+    if (selectedYear != date.getFullYear()) {
+      didChangeYear = true;
+    }
+    selectedYear = date.getFullYear();
+    selectedMonth = date.getMonth();
+    selectedDay = date.getDate();
+  }
+  url.searchParams.set("annee", selectedYear);
+  url.searchParams.set("mois", selectedMonth);
+  url.searchParams.set("jour", selectedDay);
+
+  if (didChangeYear) {
+    url.searchParams.delete("role");
+  }
+  window.location = url.href;
+}
+
 function filterSecteurEquipement() {
   secteur = $("#secteurEquipement").val();
   type = $("#typeEquipement").val();
@@ -2622,6 +2700,7 @@ function montantMax() {
   } else {
   }
 }
+
 function montantMaxMax() {
   montant = $("#montantSaisi").val().replace(/ /g, "");
 
@@ -2733,20 +2812,38 @@ function newprotpcol(id, montant) {
   });
 }
 
-function payercontibiable(annee) {
+function payercontibiable(
+  annee,
+  contribuableId = null,
+  contribuableName = null
+) {
   type_payement = $("#type_payement").val();
-  // alert(type_payement)
   if (type_payement != "all") {
     url =
       racine + "contribuables/payercontibiable/" + annee + "/" + type_payement;
     $.ajax({
       type: "get",
       url: url,
+
       success: function (data) {
         $("#second-modal .modal-dialog").addClass("modal-xl");
         $("#second-modal .modal-header-body").html(data);
         $("#second-modal").modal();
+
         resetInit();
+
+        if (contribuableId && contribuableName) {
+          $("#contribuable").append(
+            $("<option>", {
+              value: contribuableId.toString(),
+              text: contribuableName,
+            })
+          );
+
+          $("#contribuable").val(contribuableId.toString());
+          $("#contribuable").trigger("change");
+          $("#contribuable").prop("disabled", true);
+        }
       },
       error: function () {
         $.alert(
@@ -2870,6 +2967,13 @@ function saveSuspension(element) {
 }
 
 function filterContribuable(annee) {
+  $filtrage = $("#filtrage").val();
+  if ($filtrage == 3) {
+    // hide contr_created_at_select
+    $("#div_contr_created_at").show();
+  } else {
+    $("#div_contr_created_at").hide();
+  }
   contribuable = $("#contribuable").val();
   date1 = date2 = "all";
   $("#datatableshow2")
@@ -2991,6 +3095,8 @@ function filterContribuableDate(annee) {
 
 function pdfSuiviPayementCtb(annee) {
   date1 = $("#date1").val();
+  contr_created_at_month = $("#contr_created_at_select").val();
+
   filtrage = $("#filtrage").val();
   date2 = $("#date2").val();
   role = $("#type_payement").val();
@@ -3012,13 +3118,17 @@ function pdfSuiviPayementCtb(annee) {
     "/" +
     date2 +
     "/" +
-    role;
+    role +
+    "/" +
+    contr_created_at_month;
   document.formst.target = "_blank"; // Open in a new window
   document.formst.submit(); // Submit the page
   return true;
 }
 
 function excelSuiviPayementCtb(annee) {
+  contr_created_at_month = $("#contr_created_at_select").val();
+
   date1 = $("#date1").val();
   contribuable = $("#contribuable").val();
   date2 = $("#date2").val();
@@ -3043,6 +3153,8 @@ function excelSuiviPayementCtb(annee) {
     date2 +
     "/" +
     filtrage +
+    "/" +
+    contr_created_at_month +
     "";
   document.formst.target = "_blank"; // Open in a new window
   document.formst.submit(); // Submit the page

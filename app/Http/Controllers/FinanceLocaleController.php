@@ -77,7 +77,8 @@ class FinanceLocaleController extends Controller
         $etat_bdg = 'aucun';
         $annee ='';
         if (Budget::orderBy('annee', 'DESC')->get()->first()){
-        $annee = Budget::orderBy('annee', 'DESC')->get()->first()->annee;}
+        $annee = Budget::orderBy('annee', 'DESC')->get()->first()->annee;
+    }
         else {
             $annee=date('Y');
         }
