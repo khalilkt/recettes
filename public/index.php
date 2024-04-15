@@ -7,7 +7,7 @@
  * @author   Taylor Otwell <taylor@laravel.com>
  */
 
-//  set_time_limit(10);
+set_time_limit(600);
 ini_set('memory_limit', '-1');
 
 define('LARAVEL_START', microtime(true));
