@@ -74,7 +74,7 @@
         <div class="col mt-3">
           <div class="card border rounded d-flex justify-content-center align-items-center">
             <div class="card-body ">
-              <h6 class="card-title">Total Roles Montant</h6>
+              <h6 class="card-title">Total</h6>
               <p id = "total_payment_montant_id" class="card-text h3">{{number_format($total_roles_montant  , 0, '', ' ')}} MRU</p>
             </div>
           </div>
@@ -83,7 +83,7 @@
           <div class="card border rounded d-flex justify-content-center align-items-center">
             <div class="card-body ">
               <h6 class="card-title">Total Rest a payer</h6>
-              <p id = "total_payment_montant_id" class="card-text h3">{{number_format($total_roles_montant - $total_payments -  $total_degrevement , 0, '', ' ')}} MRU</p>
+              <p id = "total_payment_montant_id" class="card-text h3">{{number_format($rest , 0, '', ' ')}} MRU</p>
             </div>
           </div>
         </div>

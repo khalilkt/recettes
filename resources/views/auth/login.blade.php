@@ -8,11 +8,11 @@
           <div class="card-body p-0">
             <!-- Nested Row within Card Body -->
             <div class="row">
-              <div class="col-lg-6 d-none d-lg-block">
+              <div class="col-lg-4 d-none d-flex justify-content-center align-items-center">
                  {{-- @if(file_exists('img/'.env('LOGO_COMMUNE')))
                     <img class="" style="width: 100%;height: 100%" src="{{ URL::asset('img/'.env('LOGO_COMMUNE')) }}">
                   @else--}}
-                      <img  style="width: 100%;height: 100%" src="{{ URL::asset('img/login_img.png') }}" >
+                      <img  style="width: 240px;height: 240px" src="{{ URL::asset('img/logo_rim.jpeg') }}" >
                   {{--@endif--}}
 
 

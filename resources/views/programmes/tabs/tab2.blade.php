@@ -10,7 +10,7 @@
                         <table link="{{url('programmes/getDroitsDT/'.$programme->id)}}" colonnes="libelle,actions" class="table table-bordered datatableshow2">
                             <thead>
                             <tr>
-                                <th>{{ trans('text_me.Articlecontribuable') }} }}</th>
+                                <th>{{ trans('text_me.Articlecontribuable') }}</th>
                                 <th width="40px">&nbsp;</th>
                             </tr>
                             </thead>

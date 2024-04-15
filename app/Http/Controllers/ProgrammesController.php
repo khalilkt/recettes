@@ -157,6 +157,8 @@ class ProgrammesController extends Controller
             ->rawColumns(['actions'])
             ->make(true);
     }
+
+
     public function updateGrouping($list, $id)
     {
         App\Models\Programmejourcont::where(['programmejour_id'=>$id])->ForceDelete();
@@ -171,6 +173,18 @@ class ProgrammesController extends Controller
         }
         $res = "le groupe a été bien mise a jour";
         return response()->json($list ,200);
+    }
+
+    public function addToGrouping($contr_id, $programme_id){
+        $isExist = App\Models\Programmejourcont::where(['contribuable_id'=>$contr_id, 'programmejour_id'=>$programme_id])->get();
+        if ($isExist->count() == 0){
+            $grp_qst = new App\Models\Programmejourcont();
+            $grp_qst->programmejour_id = $programme_id;
+            $grp_qst->contribuable_id = $contr_id;
+            $grp_qst->save();
+        }
+
+
     }
 
     public function exportprogrammePDF($id)

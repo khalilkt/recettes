@@ -2812,6 +2812,28 @@ function newprotpcol(id, montant) {
   });
 }
 
+function ajouterContrAuProgDuJour(contrId) {
+  url = racine + "contribuables/ajouterContrAuProgDuJour/" + contrId;
+
+  $.ajax({
+    type: "get",
+    url: url,
+
+    success: function (data) {
+      $("#second-modal .modal-dialog").addClass("modal-xl");
+      $("#second-modal .modal-header-body").html(data);
+      $("#second-modal").modal();
+
+      resetInit();
+    },
+    error: function () {
+      $.alert(
+        "Une erreur est survenue veuillez réessayer ou actualiser la page!"
+      );
+    },
+  });
+}
+
 function payercontibiable(
   annee,
   contribuableId = null,
@@ -2939,6 +2961,23 @@ function playsup(id) {
       $("#second-modal .modal-header-body").html(data);
       $("#second-modal").modal();
       resetInit();
+    },
+    error: function () {
+      $.alert(
+        "Une erreur est survenue veuillez réessayer ou actualiser la page!"
+      );
+    },
+  });
+}
+
+function addContrToProgramme(contrId) {
+  programmeId = $("#programmes").val();
+  url = racine + "programmes/addToGrouping/" + contrId + "/" + programmeId;
+  $.ajax({
+    type: "post",
+    url: url,
+    success: function (data) {
+      alert("Contribuable ajouté au programme avec succès");
     },
     error: function () {
       $.alert(

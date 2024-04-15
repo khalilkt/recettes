@@ -38,6 +38,7 @@ Route::group(['prefix' => 'programmes/', 'middleware' => 'roles','roles' => [1]]
     Route::get('delete/{id}','ProgrammesController@delete');
     Route::get('getDroitsDT/{id}','ProgrammesController@getDroitsDT');
     Route::get('updatedroits/{list}/{id}','ProgrammesController@updateGrouping');
+    Route::post('addToGrouping/{contr_id}/{programme_id}','ProgrammesController@addToGrouping');
 });
 
 Route::group(['prefix' => 'activites/', 'middleware' => 'roles','roles' => [1]], function () {
@@ -102,6 +103,7 @@ Route::group(['prefix' => 'contribuables/', 'middleware' => 'roles','roles' => [
     Route::get('visualiserproblem/{id}','ContribuableController@visualiserproblem');
     Route::get('suiviContibuable/{annee}','ContribuableController@suiviContibuable');
     Route::get('payercontibiable/{annee}/{id}','ContribuableController@payercontibiable');
+    Route::get('ajouterContrAuProgDuJour/{id}','ContribuableController@ajouterContrAuProgDuJour');
     Route::get('suspension/{id}','ContribuableController@suspension');
     Route::get('playsup/{id}','ContribuableController@playsup');
     Route::get('changeAnnee/{annee}','ContribuableController@changeAnnee');

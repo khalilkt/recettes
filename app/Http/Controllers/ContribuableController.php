@@ -65,9 +65,27 @@ class ContribuableController extends Controller
         $annee= $this->annee_encours();
     
 
-
+        $q = "
+SELECT contribuables.*, SUM(roles_contribuables.montant) AS total_roles_montant, IFNULL(SUM(payementmens.montant), 0) AS total_payements_montant, IFNULL(SUM(degrevement_contribuables.montant), 0) AS total_degrevement_montant, SUM(roles_contribuables.montant) - IFNULL(SUM(payementmens.montant), 0) - IFNULL(SUM(degrevement_contribuables.montant), 0) AS final_montant FROM contribuables LEFT JOIN roles_contribuables ON contribuables.id = roles_contribuables.contribuable_id LEFT JOIN payementmens ON contribuables.id = payementmens.contribuable_id LEFT JOIN degrevement_contribuables ON contribuables.id = degrevement_contribuables.contribuable_id GROUP BY contribuables.id, contribuables.activite_id, contribuables.ref_emplacement_activite_id, contribuables.ref_taille_activite_id, contribuables.libelle, contribuables.article, contribuables.periode, contribuables.nif , contribuables.libelle_ar, contribuables.representant, contribuables.adresse , contribuables.telephone , contribuables.montant, contribuables.date_mas, contribuables.etat, contribuables.nomenclature_element_id, contribuables.created_at, contribuables.updated_at, contribuables.deleted_at  ORDER BY final_montant DESC
+        ";
         $contribuales = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
-        if ($type != 'all') {
+        // $contribuales = DB::select($q)->pluck("contribuable_id");
+        // $contribuales  = Contribuable::hydrate($results);
+
+        $contribuales = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))->leftJoin('roles_contribuables', 'contribuables.id', '=', 'roles_contribuables.contribuable_id')
+    ->leftJoin('payementmens', 'contribuables.id', '=', 'payementmens.contribuable_id')
+    ->leftJoin('degrevement_contribuables', 'contribuables.id', '=', 'degrevement_contribuables.contribuable_id')
+    ->select(
+        'contribuables.*',
+        DB::raw('SUM(roles_contribuables.montant) AS total_roles_montant'),
+        DB::raw('IFNULL(SUM(payementmens.montant), 0) AS total_payements_montant'),
+        DB::raw('IFNULL(SUM(degrevement_contribuables.montant), 0) AS total_degrevement_montant'),
+        DB::raw('(SUM(roles_contribuables.montant) - IFNULL(SUM(payementmens.montant), 0) - IFNULL(SUM(degrevement_contribuables.montant), 0)) AS final_montant')
+    )
+    ->groupBy("contribuables.id", "contribuables.activite_id", "contribuables.ref_emplacement_activite_id", "contribuables.ref_taille_activite_id", "contribuables.libelle", "contribuables.article", "contribuables.periode", "contribuables.nif" , "contribuables.libelle_ar", "contribuables.representant", "contribuables.adresse" ,"contribuables.telephone" , "contribuables.montant", "contribuables.date_mas", "contribuables.etat", "contribuables.nomenclature_element_id", "contribuables.created_at", "contribuables.updated_at", "contribuables.deleted_at" )
+    ->orderBy('final_montant', 'desc');
+
+    if ($type != 'all') {
             if ($type == 0 or $type == 1 or $type == 'f'){
                 if ($type == 0 or $type == 1){
                 $contribuales = Contribuable::whereIn('id', ContribuablesAnnee::where('annee', $annee)->where('spontane', $type)->pluck('contribuable_id'));
@@ -90,10 +108,14 @@ class ContribuableController extends Controller
                 $html .=' <button type="button" class="btn btn-sm btn-dark" onClick="openObjectModal('.$contribuale->id.',\''.$this->module.'\')" data-toggle="tooltip" data-placement="top" title="'.trans('text.visualiser').'"><i class="fa fa-fw fa-eye"></i></button> ';
                 if(Auth::user()->hasAccess(9,4)) {
                     $html .= '<button type="button" class="btn btn-sm btn-warning" onClick="exportcontribuablePDF(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="' . trans('text_me.editficheContribuable') . '"><i class="fas fa-fw fa-file-pdf"></i></button>';
+                
                 }
 
                 if(Auth::user()->hasAccess(9,4)) {
                     $html .= '<button type="button" class="btn btn-sm btn-dark" onClick="payercontibiable(\'' . $annee . '\', \'' . $contribuale->id . '\', \'' . $contribuale->libelle. '\')" data-toggle="tooltip" data-placement="top" title="' . "Ajouter un payement" . '"><i class="fas fa-fw fa-file-invoice-dollar"></i></button>';
+                }
+                if(Auth::user()->hasAccess(9,4)) {
+                    $html .= '<button type="button" class="btn btn-sm btn-warning" onClick="ajouterContrAuProgDuJour(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="' . "Ajouter au programme du jour" . '"><i class="fas fa-fw fa-chart-line"></i></button>';
                 }
 
                 if(Auth::user()->hasAccess(9,4)) {
@@ -1375,6 +1397,14 @@ public function insertEcheance($protocol,$date,$montant)
     $eche2->montant=$montant;
     $eche2->save();
 }
+    public function ajouterContrAuProgDuJour($id){
+        $contribuable=Contribuable::find($id);
+        $anne=App\Models\Annee::where('etat',1)->get()->first()->id;
+        $all_programmes= App\Models\Programmejour::where('annee_id',$anne)->get();
+        $programmes_in = App\Models\Programmejourcont::where('contribuable_id',$id)->pluck('programmejour_id')->toArray();
+
+        return view($this->module . '.ajax.programeDuJour', ['contribuable' => $contribuable, 'programmes_in' => $programmes_in, 'all_programmes' => $all_programmes]);
+    }
 
     public function payercontibiable($annee,$type){
         //$module= Module::find(5);

@@ -45,8 +45,16 @@ class HomeController extends Controller
 
       $totalPayment = $this->getTotalPayment($year->annee, $roleId, $month, $day);
       $totalDegrevement = $this->getTotalDegrevement($year->annee, $month, $day);
+      if ( $roleId != null){
+        $totalDegrevement = 0;
+      }
       $totalRolesMontant = $this->getTotalRolesMontant($year->annee, $roleId, $month, $day);
-      return view('dashboard', ['modules' => Module::all(), 'years' => $years, 'year' => $year, 'month' => $month, "day"=> $day, "roles" => $roles, "roleId" => $roleId, "total_payments" => $totalPayment, "total_degrevement" => $totalDegrevement, "total_roles_montant" => $totalRolesMontant]);
+      $rest = $totalRolesMontant - $totalPayment -  $totalDegrevement;
+      if ($rest < 0){
+        $rest = 0;
+      }
+       
+      return view('dashboard', ['modules' => Module::all(), 'years' => $years, 'year' => $year, 'month' => $month, "day"=> $day, "roles" => $roles, "roleId" => $roleId, "total_payments" => $totalPayment, "total_degrevement" => $totalDegrevement, "total_roles_montant" => $totalRolesMontant , "rest" => $rest]);
     }
 
 
