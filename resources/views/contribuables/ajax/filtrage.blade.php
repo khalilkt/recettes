@@ -49,17 +49,30 @@
                                     <input id="date2"  name="date2"  class="form-control" type="date" onchange="filterContribuableDate({{$annee}})" >
                                 </div>
                             </div>
-                            <div id = "div_contr_created_at" class="col-md-4 filters-item mt-3" style="display: none;">
+                        <div class="row col-md-8" id = "div_contr_created_at"style="display: none;"
+                        >
+                            <div class=" filters-item mt-3" >
                                 <div class="filters-label mb-1">
                                     <i class="fa fa-filter"></i>Contribuables Créer au
                                 </div>
-                                <select class="selectpicker form-control" id="contr_created_at_select" name="contr_created_at_select">
+                                <select class="selectpicker form-control" id="contr_created_at_select" name="contr_created_at_select" onchange="onDecouvrementMonthChange({{$annee}})">
                                    @foreach (["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Août","Septembre","Octobre","Novembre","Décembre"] as $key => $month)
                                     <option value="{{$key + 1}}" >{{$month}}</option>
                                    @endforeach
                                 
                                 </select>
+                                <span>total : <span class="bold" id="contr_total_resut">0</span></span>
                             </div>
+                            <div id = "div_contr" class="ml-3 filters-item mt-3" >
+                                <div class="filters-label mb-1">
+                                    <i class="fa fa-filter"></i>parties
+                                </div>
+                                <select id="contr_split_select" class="selectpicker form-control" style="display: block" onchange="">
+                                    <option value="1" >1 - 500</option>
+                                </select>
+                            </div>
+                        </div>
+
                     </div>
                     </div>
                     <div class="card-body">
