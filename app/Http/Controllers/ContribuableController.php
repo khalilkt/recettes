@@ -1874,13 +1874,15 @@ public function insertEcheance($protocol,$date,$montant)
                 }
 
             }
-            $html .= '<br>Année : <b>' . $annee . '</b>';
+            if($filtrage == 3) {
+                $html .= '<br>Année : <b>' . $annee . '</b>';
             if($contr_created_at_month != "all"){
                 $html .= '<br>Mois : <b>' . Mois::find($contr_created_at_month)->libelle . '</b>';
             }
             if($selected_split != "all"){
                 $html .= '<br>partie : <b>' . $selected_split . "/" . $total_split .  '</b>';
             }
+        }
 
             $html .= $libelleRole;
             $html .= '</td>
