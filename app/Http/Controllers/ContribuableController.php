@@ -186,19 +186,19 @@ class ContribuableController extends Controller
                     $html .= '<button type="button" class="btn btn-sm btn-success" onClick="sutiationcontribuablePDF(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="Situation Fiscale"><i class="fas fa-fw fa-money-bill-alt"></i></button>';
                 } 
 
-               if(Auth::user()->hasAccess(9,4)) {
-                   $annee= $this->annee_encours();
-                   $contrib = ContribuablesAnnee::where('annee', $annee)->where('etat', 'F')->where('contribuable_id', $contribuale->id)->get();
-                    if ($contrib->count()>0)
-                        $html .= '<button type="button" class="btn btn-sm btn-default" onClick="fichdefermercontribuable(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="PV Fermerture"><i class="fas fa-fw fa-arrow-circle-down"></i></button>';
-                    else
-                        $html .= '<button type="button" class="btn btn-sm btn-danger" onClick="fermercontribuable(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="Fermerture"><i class="fas fa-fw fa-arrow-circle-down"></i></button>';
+            //    if(Auth::user()->hasAccess(9,4)) {
+            //        $annee= $this->annee_encours();
+            //        $contrib = ContribuablesAnnee::where('annee', $annee)->where('etat', 'F')->where('contribuable_id', $contribuale->id)->get();
+            //         if ($contrib->count()>0)
+            //             $html .= '<button type="button" class="btn btn-sm btn-default" onClick="fichdefermercontribuable(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="PV Fermerture"><i class="fas fa-fw fa-arrow-circle-down"></i></button>';
+            //         else
+            //             $html .= '<button type="button" class="btn btn-sm btn-danger" onClick="fermercontribuable(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="Fermerture"><i class="fas fa-fw fa-arrow-circle-down"></i></button>';
 
-               }
+            //    }
 
-                if(Auth::user()->hasAccess(9,5)) {
-                    $html .= ' <button type="button" class="btn btn-sm btn-secondary" onClick="confirmAction(\'' . url($this->module . '/delete/' . $contribuale->id) . '\',\'' . trans('text.confirm_suppression') . '' . $contribuale->libelle . '\')" data-toggle="tooltip" data-placement="top" title="' . trans('text.supprimer') . '"><i class="fas fa-trash"></i></button> ';
-                }
+                // if(Auth::user()->hasAccess(9,5)) {
+                //     $html .= ' <button type="button" class="btn btn-sm btn-secondary" onClick="confirmAction(\'' . url($this->module . '/delete/' . $contribuale->id) . '\',\'' . trans('text.confirm_suppression') . '' . $contribuale->libelle . '\')" data-toggle="tooltip" data-placement="top" title="' . trans('text.supprimer') . '"><i class="fas fa-trash"></i></button> ';
+                // }
                 $html .='</div>';
                 return $html;
             })
