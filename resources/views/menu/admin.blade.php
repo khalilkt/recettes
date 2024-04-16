@@ -13,6 +13,7 @@
             <a class="collapse-item" href="{{url('activites')}}">{{trans("text_me.activites")}} </a>
             <a class="collapse-item" href="{{url('forchets')}}">{{trans("text_me.forchets")}} </a>
             <a class="collapse-item" href="{{url('categories')}}">{{trans("text_me.categories")}} </a>
+            <a class="collapse-item" href="{{url('contribuables/manage')}}">Gestion des contribuables</a>
         </div>
     </div>
 </li>

@@ -80,8 +80,11 @@ Route::group(['prefix' => 'forchets/', 'middleware' => 'roles','roles' => [1]], 
 
 Route::group(['prefix' => 'contribuables/', 'middleware' => 'roles','roles' => [9]], function () {
     Route::get('', 'ContribuableController@index');
+    Route::get('manage', 'ContribuableController@manage');
     Route::get('getDT/{type}', 'ContribuableController@getDT');
-    Route::get('getDT/{type}/{id}', 'ContribuableController@getDT');
+    
+    Route::get('getManageDT/', 'ContribuableController@getManageDT');
+    Route::get('get/{id}','ContribuableController@get');
     Route::get('get/{id}','ContribuableController@get');
     Route::get('getTab/{id}/{tab}','ContribuableController@getTab');
     Route::get('add','ContribuableController@formAdd');
@@ -115,8 +118,8 @@ Route::group(['prefix' => 'contribuables/', 'middleware' => 'roles','roles' => [
     Route::get('recuperemontant/{id}','ContribuableController@recuperemontant');
     Route::get('recuperemontant1/{id}/{echance}','ContribuableController@recuperemontant1');
     Route::get('getPayementAnnne/{annee}/{contr}/{date1}/{date2}','ContribuableController@getPayementAnnne');
-    Route::get('pdfSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{role}/{contr_created_at_month}','ContribuableController@pdfSuiviPayementCtb');
-    Route::get('excelSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{filtrage}/{contr_created_at_month}','ContribuableController@excelSuiviPayementCtb');
+    Route::get('pdfSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{role}/{contr_created_at_month}/{selected_split}','ContribuableController@pdfSuiviPayementCtb');
+    Route::get('excelSuiviPayementCtb/{annee}/{contr}/{date1}/{date2}/{filtrage}/{contr_created_at_month}/{selected_split}','ContribuableController@excelSuiviPayementCtb');
     Route::get('newPayement/{id}','ContribuableController@newPayement');
     Route::get('newPayementPv/{id}','ContribuableController@newPayementPv');
     Route::get('annulerRole/{id}','ContribuableController@annulerRole');
@@ -126,5 +129,6 @@ Route::group(['prefix' => 'contribuables/', 'middleware' => 'roles','roles' => [
     Route::post('savePayement','ContribuableController@savePayement');
     Route::post('savePayementpv','ContribuableController@savePayementpv');
     Route::post('saveProtocol','ContribuableController@saveProtocol');
-    Route::post('saveSuspension','ContribuableController@saveSuspension');
+    Route::get('get_contrubiable_count/{annee}/{mois}','ContribuableController@get_contrubiable_count');
+    
 });

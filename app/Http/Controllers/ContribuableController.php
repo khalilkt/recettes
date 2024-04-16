@@ -46,6 +46,41 @@ class ContribuableController extends Controller
     {
         //$this->middleware('auth');
     }
+    
+    public  function manage(){
+        $annees=Annee::all();
+        $annee=Annee::where('etat',1)->get()->first();
+
+        return view($this->module.'.manage', ["annees" => $annees, "annee" => $annee, "roles" => []]);
+
+    }
+
+    public function getManageDT(){
+        $annee= $this->annee_encours();
+            $contribuales = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
+            return DataTables::of($contribuales)
+
+            ->addColumn('actions', function(Contribuable $contribuale) use ($annee){
+                $html = '<div class="btn-group">';
+               
+               if(Auth::user()->hasAccess(9,4)) {
+                   $annee= $this->annee_encours();
+                   $contrib = ContribuablesAnnee::where('annee', $annee)->where('etat', 'F')->where('contribuable_id', $contribuale->id)->get();
+                    if ($contrib->count()>0)
+                        $html .= '<button type="button" class="btn btn-sm btn-default" onClick="fichdefermercontribuable(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="PV Fermerture"><i class="fas fa-fw fa-arrow-circle-down"></i></button>';
+                    else
+                        $html .= '<button type="button" class="btn btn-sm btn-danger" onClick="fermercontribuable(' . $contribuale->id . ')" data-toggle="tooltip" data-placement="top" title="Fermerture"><i class="fas fa-fw fa-arrow-circle-down"></i></button>';
+               }
+
+                if(Auth::user()->hasAccess(9,5)) {
+                    $html .= ' <button type="button" class="btn btn-sm btn-secondary" onClick="confirmAction(\'' . url($this->module . '/delete/' . $contribuale->id) . '\',\'' . trans('text.confirm_suppression') . '' . $contribuale->libelle . '\')" data-toggle="tooltip" data-placement="top" title="' . trans('text.supprimer') . '"><i class="fas fa-trash"></i></button> ';
+                }
+                $html .='</div>';
+                return $html;
+            })
+            ->rawColumns(['id', "actions"])
+            ->make(true);
+    }
 
     public function index()
     {
@@ -65,43 +100,72 @@ class ContribuableController extends Controller
         $annee= $this->annee_encours();
     
 
-        $q = "
-SELECT contribuables.*, SUM(roles_contribuables.montant) AS total_roles_montant, IFNULL(SUM(payementmens.montant), 0) AS total_payements_montant, IFNULL(SUM(degrevement_contribuables.montant), 0) AS total_degrevement_montant, SUM(roles_contribuables.montant) - IFNULL(SUM(payementmens.montant), 0) - IFNULL(SUM(degrevement_contribuables.montant), 0) AS final_montant FROM contribuables LEFT JOIN roles_contribuables ON contribuables.id = roles_contribuables.contribuable_id LEFT JOIN payementmens ON contribuables.id = payementmens.contribuable_id LEFT JOIN degrevement_contribuables ON contribuables.id = degrevement_contribuables.contribuable_id GROUP BY contribuables.id, contribuables.activite_id, contribuables.ref_emplacement_activite_id, contribuables.ref_taille_activite_id, contribuables.libelle, contribuables.article, contribuables.periode, contribuables.nif , contribuables.libelle_ar, contribuables.representant, contribuables.adresse , contribuables.telephone , contribuables.montant, contribuables.date_mas, contribuables.etat, contribuables.nomenclature_element_id, contribuables.created_at, contribuables.updated_at, contribuables.deleted_at  ORDER BY final_montant DESC
-        ";
-        $contribuales = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
+//         $q = "
+// SELECT contribuables.*, SUM(roles_contribuables.montant) AS total_roles_montant, IFNULL(SUM(payementmens.montant), 0) AS total_payements_montant, IFNULL(SUM(degrevement_contribuables.montant), 0) AS total_degrevement_montant, SUM(roles_contribuables.montant) - IFNULL(SUM(payementmens.montant), 0) - IFNULL(SUM(degrevement_contribuables.montant), 0) AS final_montant FROM contribuables LEFT JOIN roles_contribuables ON contribuables.id = roles_contribuables.contribuable_id LEFT JOIN payementmens ON contribuables.id = payementmens.contribuable_id LEFT JOIN degrevement_contribuables ON contribuables.id = degrevement_contribuables.contribuable_id GROUP BY contribuables.id, contribuables.activite_id, contribuables.ref_emplacement_activite_id, contribuables.ref_taille_activite_id, contribuables.libelle, contribuables.article, contribuables.periode, contribuables.nif , contribuables.libelle_ar, contribuables.representant, contribuables.adresse , contribuables.telephone , contribuables.montant, contribuables.date_mas, contribuables.etat, contribuables.nomenclature_element_id, contribuables.created_at, contribuables.updated_at, contribuables.deleted_at  ORDER BY final_montant DESC
+//         ";
+        // $contribuales = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
         // $contribuales = DB::select($q)->pluck("contribuable_id");
         // $contribuales  = Contribuable::hydrate($results);
 
-        $contribuales = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))->leftJoin('roles_contribuables', 'contribuables.id', '=', 'roles_contribuables.contribuable_id')
-    ->leftJoin('payementmens', 'contribuables.id', '=', 'payementmens.contribuable_id')
-    ->leftJoin('degrevement_contribuables', 'contribuables.id', '=', 'degrevement_contribuables.contribuable_id')
+        $contribuales = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))
+        ->leftJoin('roles_contribuables', function($join) {
+            $join->on('contribuables.id', '=', 'roles_contribuables.contribuable_id')
+                ->whereNull('roles_contribuables.deleted_at');
+        })
+        ->leftJoin('payementmens', function($join) {
+            $join->on('contribuables.id', '=', 'payementmens.contribuable_id')
+                ->whereNull('payementmens.deleted_at');
+        })
+        ->leftJoin('degrevement_contribuables', function($join) {
+            $join->on('contribuables.id', '=', 'degrevement_contribuables.contribuable_id')
+                ->whereNull('degrevement_contribuables.deleted_at');
+        })
     ->select(
         'contribuables.*',
-        DB::raw('SUM(roles_contribuables.montant) AS total_roles_montant'),
-        DB::raw('IFNULL(SUM(payementmens.montant), 0) AS total_payements_montant'),
-        DB::raw('IFNULL(SUM(degrevement_contribuables.montant), 0) AS total_degrevement_montant'),
-        DB::raw('(SUM(roles_contribuables.montant) - IFNULL(SUM(payementmens.montant), 0) - IFNULL(SUM(degrevement_contribuables.montant), 0)) AS final_montant')
-    )
-    ->groupBy("contribuables.id", "contribuables.activite_id", "contribuables.ref_emplacement_activite_id", "contribuables.ref_taille_activite_id", "contribuables.libelle", "contribuables.article", "contribuables.periode", "contribuables.nif" , "contribuables.libelle_ar", "contribuables.representant", "contribuables.adresse" ,"contribuables.telephone" , "contribuables.montant", "contribuables.date_mas", "contribuables.etat", "contribuables.nomenclature_element_id", "contribuables.created_at", "contribuables.updated_at", "contribuables.deleted_at" )
-    ->orderBy('final_montant', 'desc');
+        DB::raw('COUNT(DISTINCT roles_contribuables.id) AS nbreRole'),
+        DB::raw('SUM(DISTINCT roles_contribuables.montant) AS total_roles_montant'),
+        DB::raw('IFNULL(SUM(DISTINCT payementmens.montant), 0) AS total_payements_montant'),
+        DB::raw('IFNULL(SUM(DISTINCT degrevement_contribuables.montant), 0) AS total_degrevement_montant'),
+        DB::raw('SUM(DISTINCT roles_contribuables.montant) - IFNULL(SUM( DISTINCT payementmens.montant), 0) - IFNULL(SUM(DISTINCT degrevement_contribuables.montant), 0) AS final_montant')
+    );
 
-    if ($type != 'all') {
-            if ($type == 0 or $type == 1 or $type == 'f'){
+    if ($type != 'all'){
+        if ($type == 0 or $type == 1 or $type == 'f'){
                 if ($type == 0 or $type == 1){
-                $contribuales = Contribuable::whereIn('id', ContribuablesAnnee::where('annee', $annee)->where('spontane', $type)->pluck('contribuable_id'));
-                 }
+                $contribuales = $contribuales->whereIn('contribuables.id', ContribuablesAnnee::where('annee', $annee)->where('spontane', $type)->pluck('contribuable_id'));
+                }
                 if ($type == 'f'){
-                $contribuales = Contribuable::whereIn('id', ContribuablesAnnee::where('annee', $annee)->where('etat', $type)->pluck('contribuable_id'));
-                 }
-        }
-            else{
-                $contribuales = Contribuable::whereIn('id', App\Models\RolesContribuable::where('annee', $annee)->where('role_id', $type)->pluck('contribuable_id'));
-
+                    $contribuales = $contribuales->whereIn('contribuables.id', ContribuablesAnnee::where('annee', $annee)->where('etat', $type)->pluck('contribuable_id'));
+                }
             }
-        }
+        else{
+                $contribuales = $contribuales->whereIn('contribuables.id', App\Models\RolesContribuable::where('annee', $annee)->where('role_id', $type)->pluck('contribuable_id'));
+            }
+    }
+  
+
+    // if ($type != 'all') {
+    //         if ($type == 0 or $type == 1 or $type == 'f'){
+    //             if ($type == 0 or $type == 1){
+    //             $contribuales = Contribuable::whereIn('id', ContribuablesAnnee::where('annee', $annee)->where('spontane', $type)->pluck('contribuable_id'));
+    //              }
+    //             if ($type == 'f'){
+    //             $contribuales = Contribuable::whereIn('id', ContribuablesAnnee::where('annee', $annee)->where('etat', $type)->pluck('contribuable_id'));
+    //              }
+    //     }
+    //         else{
+    //             $contribuales = Contribuable::whereIn('id', App\Models\RolesContribuable::where('annee', $annee)->where('role_id', $type)->pluck('contribuable_id'));
+
+    //         }
+    //     }
         if ($selected != 'all')
-            $contribuales = $contribuales->orderByRaw('id = ? desc', [$selected])->with('activite','ref_taille_activite','ref_emplacement_activite') ->whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
-        return DataTables::of($contribuales)
+            $contribuales = $contribuales->orderByRaw('contribuables.id = ? desc', [$selected])->with('hactivite','ref_taille_activite','ref_emplacement_activite') ->whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'));
+       
+            $contribuales = $contribuales
+
+            ->groupBy("contribuables.id", "contribuables.activite_id", "contribuables.ref_emplacement_activite_id", "contribuables.ref_taille_activite_id", "contribuables.libelle", "contribuables.article", "contribuables.periode", "contribuables.nif" , "contribuables.libelle_ar", "contribuables.representant", "contribuables.adresse" ,"contribuables.telephone" , "contribuables.montant", "contribuables.date_mas", "contribuables.etat", "contribuables.nomenclature_element_id", "contribuables.created_at", "contribuables.updated_at", "contribuables.deleted_at" )
+            ->orderBy('final_montant', 'desc');
+            return DataTables::of($contribuales)
 
             ->addColumn('actions', function(Contribuable $contribuale) use ($annee){
                 $html = '<div class="btn-group">';
@@ -204,8 +268,10 @@ SELECT contribuables.*, SUM(roles_contribuables.montant) AS total_roles_montant,
                 foreach ($degrevements as $degrevement) {
                     $montantdegr += $degrevement->montant;
                 }
-
-                $html = $montantdue -$motantPayes-$montantdegr;
+                
+                // $html = $montantdue -$motantPayes-$montantdegr;
+                $html = $contribuale->final_montant;
+                // $html .= '(' . $contribuale->nbreRole . ')';
                 return $html;
             })
             ->addColumn('Roles', function(Contribuable $contribuale) {
@@ -934,6 +1000,8 @@ SELECT contribuables.*, SUM(roles_contribuables.montant) AS total_roles_montant,
         return $data;
     }
 
+
+
     public function saveSuspension(SuspensionRequest $request)
     {
         $mois1 = $request->mois1;
@@ -1277,6 +1345,8 @@ SELECT contribuables.*, SUM(roles_contribuables.montant) AS total_roles_montant,
         }
     }
 
+
+
     public function saveProtocol(App\Http\Requests\PayementRequest4 $request)
     {
         $annee=$annee=Annee::where('etat',1)->get()->first()->id;
@@ -1431,8 +1501,24 @@ public function insertEcheance($protocol,$date,$montant)
         $annee=$this->annee_encours();
         // $contribuables = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))->get();
         $mois=Mois::all();
+        $month_counts = [];
+        for ($i=1; $i<=12; $i++){
+            $month_counts[$i] = $this->get_contrubiable_count($annee, $i);
+        }
+        return view($this->module . '.ajax.filtrage', ['annee' => $annee ,'mois' => $mois,'module' => $module, 'month_counts' => $month_counts]);
+    }
 
-        return view($this->module . '.ajax.filtrage', ['annee' => $annee ,'mois' => $mois,'module' => $module]);
+    public function get_contrubiable_count($annee, $mois){
+
+        $ret = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))
+        ->whereMonth('contribuables.created_at', $mois)->count();
+        return $ret ?? 0;
+    }
+
+    public function  get_contr_count_range($startDate, $endDate) {  
+        $ret = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))
+        ->whereBetween('contribuables.created_at', [$startDate, $endDate])->count();
+        return $ret ?? 0;
     }
 
     public function suspension($id){
@@ -1505,7 +1591,7 @@ public function insertEcheance($protocol,$date,$montant)
             ->make(true);
     }
 
-    public function pdfSuiviPayementCtb($annee,$filtrage,$date1,$date2,$role='all', $contr_created_at_month = "all")
+    public function pdfSuiviPayementCtb($annee,$filtrage,$date1,$date2,$role='all', $contr_created_at_month = "all", $selected_split = "all")
     {
         if ($filtrage==1)
         {
@@ -1738,6 +1824,14 @@ public function insertEcheance($protocol,$date,$montant)
         
             // // ->take(100)
             // ->get();
+            $selected_split = $selected_split == "all" ? 1 : $selected_split;
+            
+            $start = ($selected_split - 1) * 500;
+            $total_count = $this->get_contrubiable_count($annee ,$contr_created_at_month);
+            $total_split = ceil($total_count / 500);
+            if ($total_split == 0) {
+                $total_split = 1;
+            }
 
             $contribuables = Contribuable::whereIn('id', function($query) use ($annee) {
                 $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $annee);
@@ -1748,6 +1842,8 @@ public function insertEcheance($protocol,$date,$montant)
                 }
             }])
             ->whereMonth('created_at', $contr_created_at_month)
+            ->skip($start)
+            ->take(500)
             ->get();
             
 
@@ -1778,13 +1874,19 @@ public function insertEcheance($protocol,$date,$montant)
                 }
 
             }
+            $html .= '<br>Année : <b>' . $annee . '</b>';
+            if($contr_created_at_month != "all"){
+                $html .= '<br>Mois : <b>' . Mois::find($contr_created_at_month)->libelle . '</b>';
+            }
+            if($selected_split != "all"){
+                $html .= '<br>partie : <b>' . $selected_split . "/" . $total_split .  '</b>';
+            }
 
-
-                $html .= $libelleRole;
-                $html .= '</td>
-                </tr>
-                </table>
-                </div><br>';
+            $html .= $libelleRole;
+            $html .= '</td>
+            </tr>
+            </table>
+            </div><br>';
 
             $montants=0;
             $html .= '<table width="100%"   border="1" cellspacing="0" cellpadding="0">
@@ -2131,7 +2233,7 @@ public function insertEcheance($protocol,$date,$montant)
        return $html;
         }
     }
-    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month)
+    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month, $selected_split)
     {   $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
         if ($filtrage==1){
            $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
@@ -2141,7 +2243,7 @@ public function insertEcheance($protocol,$date,$montant)
         }else if ($filtrage==3){
             $name = ''.trans("suivirecouvrement").'.xlsx';
         }
-        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month), $name);
+        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month, $selected_split), $name);
     }
 
     public function exporterListeprotocolEch(){

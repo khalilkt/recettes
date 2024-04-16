@@ -3005,6 +3005,50 @@ function saveSuspension(element) {
   saveform(element, function (id) {});
 }
 
+function onDecouvrementMonthChange(annee) {
+  selectedMonth = $("#contr_created_at_select").val();
+  $.ajax({
+    type: "get",
+    url:
+      racine +
+      "contribuables/get_contrubiable_count/" +
+      annee +
+      "/" +
+      selectedMonth,
+    success: function (data) {
+      $("#contr_split_select").find("option").remove();
+
+      var newOptions = [{ value: 1, text: "1 - 500" }];
+
+      for (var i = 500; i <= data; i += 500) {
+        newOptions.push({
+          value: i / 500 + 1,
+          text: i + " - " + (i + 500),
+        });
+      }
+
+      $.each(newOptions, function (index, option) {
+        $("#contr_split_select").append(
+          $("<option>", {
+            value: option.value,
+            text: option.text,
+          })
+        );
+      });
+
+      // Refresh the selectpicker to reflect the changes
+      $("#contr_split_select").selectpicker("refresh");
+
+      $("#contr_total_resut").text(data.toString());
+    },
+    error: function () {
+      $.alert(
+        "Une erreur est survenue veuillez réessayer ou actualiser la page!"
+      );
+    },
+  });
+}
+
 function filterContribuable(annee) {
   $filtrage = $("#filtrage").val();
   if ($filtrage == 3) {
@@ -3088,6 +3132,7 @@ function filterContribuableMois(annee) {
     contribuable = "all";
   } else {
   }
+
   $("#datatableshow2")
     .DataTable()
     .ajax.url(
@@ -3103,6 +3148,7 @@ function filterContribuableMois(annee) {
     )
     .load();
 }
+
 function filterContribuableDate(annee) {
   date1 = $("#date1").val();
   contribuable = $("#contribuable").val();
@@ -3134,19 +3180,17 @@ function filterContribuableDate(annee) {
 
 function pdfSuiviPayementCtb(annee) {
   date1 = $("#date1").val();
-  contr_created_at_month = $("#contr_created_at_select").val();
+  contr_created_at_month = $("#contr_created_at_select").val() ?? 1;
+  selection_split = $("#contr_split_select").val() ?? 1;
 
   filtrage = $("#filtrage").val();
   date2 = $("#date2").val();
   role = $("#type_payement").val();
-  if (contribuable == "") {
-    contribuable = "all";
-  }
+
   if (date1 == "" || date2 == "") {
     date1 = "all";
     date2 = "all";
   }
-
   document.formst.action =
     "contribuables/pdfSuiviPayementCtb/" +
     annee +
@@ -3159,14 +3203,17 @@ function pdfSuiviPayementCtb(annee) {
     "/" +
     role +
     "/" +
-    contr_created_at_month;
+    contr_created_at_month +
+    "/" +
+    selection_split;
   document.formst.target = "_blank"; // Open in a new window
   document.formst.submit(); // Submit the page
   return true;
 }
 
 function excelSuiviPayementCtb(annee) {
-  contr_created_at_month = $("#contr_created_at_select").val();
+  contr_created_at_month = $("#contr_created_at_select").val() ?? 1;
+  selection_split = $("#contr_split_select").val() ?? 1;
 
   date1 = $("#date1").val();
   contribuable = $("#contribuable").val();
@@ -3194,7 +3241,9 @@ function excelSuiviPayementCtb(annee) {
     filtrage +
     "/" +
     contr_created_at_month +
-    "";
+    "/" +
+    selection_split;
+
   document.formst.target = "_blank"; // Open in a new window
   document.formst.submit(); // Submit the page
   return true;

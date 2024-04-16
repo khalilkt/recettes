@@ -35,11 +35,12 @@ class ExportContribuable implements FromView,ShouldAutoSize
     public $filtrage;
     public $role;
     public $contr_created_at_month;
+    public $selected_split;
 
     private $restmontrecouv = 0;
 
 
-    public function __construct($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month)
+    public function __construct($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month, $selected_split)
     {
         $this->annee=$annee;
         $this->contr=$contr;
@@ -49,6 +50,7 @@ class ExportContribuable implements FromView,ShouldAutoSize
         $this->role = 'all';
 
         $this->contr_created_at_month = $contr_created_at_month;
+        $this->selected_split = $selected_split;
     }
 
     public function view():View
@@ -181,6 +183,10 @@ class ExportContribuable implements FromView,ShouldAutoSize
             </tr>
             </thead>
             <tbody>';
+            $selected_split = $this->selected_split == "all" ? 1 : $this->selected_split;
+
+            $start = ($selected_split - 1) * 500;
+
             $contribuables = Contribuable::whereIn('id', function($query) {
                 $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $this->annee);
             })->with(['roles' => function ($query) {
@@ -190,6 +196,8 @@ class ExportContribuable implements FromView,ShouldAutoSize
                 }
             }])
             ->whereMonth('created_at', $this->contr_created_at_month)
+            ->skip($start)
+            ->take(500)
             ->get();
             foreach ($contribuables as $contribuable)
             {
