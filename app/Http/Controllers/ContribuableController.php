@@ -1913,13 +1913,10 @@ public function insertEcheance($protocol,$date,$montant)
                         <td style="width:5% ;">
                             <b>Article</b>
                         </td>
-                        <td style="width:15% ;" align="center">
+                        <td style="width:20% ;" align="center">
                             <b>Rôle</b>
                         </td>
-                        <td style="width:7% ;" >
-                            <b>Montant </b>
-                        </td>
-                        <td style="width:8% ;" >
+                        <td style="width:10% ;" >
                             <b>Montant due</b>
                         </td>
                         <td style="width:10% ;" >
@@ -2004,7 +2001,7 @@ public function insertEcheance($protocol,$date,$montant)
         // $html = $role;
         $montantdue = 0;
         $html='';$html1='';
-        $html1 .='<td colspan="3"><table border="0" style="width: 100%;">';
+        $html1 .='<td colspan="2"><table border="0" style="width: 100%;">';
         foreach ($roles as $role) {
             // if ($role->emeregement!=''){
 
@@ -2013,15 +2010,13 @@ public function insertEcheance($protocol,$date,$montant)
             $articles .= ''.$role->article .'<br> ';
             $montantdue += $role->montant;
             $html1 .='<tr>
-            <td  align="left" style="width: 15%;">
+            <td  align="center" style="width: 15%;">
             '.$role->article.'
             </td>
-            <td  align="left" style="width: 60%;">
+            <td  align="center" style="width: 60%;">
             '.$rr->libelle.'
             </td>
-            <td align="right" style="width: 25%;">
-            '.strrev(wordwrap(strrev($role->montant), 3, ' ', true)).'
-            </td>
+           
             </tr>';
         }
         $html1 .='</table></td>';
