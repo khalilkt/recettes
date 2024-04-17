@@ -3179,13 +3179,10 @@ function filterContribuableDate(annee) {
 }
 
 function pdfSuiviPayementCtb(annee) {
+  selectedRole = $("#suivi_payment_role_select").val() ?? null;
   date1 = $("#date1").val();
-  contr_created_at_month = $("#contr_created_at_select").val() ?? 1;
-  selection_split = $("#contr_split_select").val() ?? 1;
-
   filtrage = $("#filtrage").val();
   date2 = $("#date2").val();
-  role = $("#type_payement").val();
 
   if (date1 == "" || date2 == "") {
     date1 = "all";
@@ -3201,24 +3198,19 @@ function pdfSuiviPayementCtb(annee) {
     "/" +
     date2 +
     "/" +
-    role +
-    "/" +
-    contr_created_at_month +
-    "/" +
-    selection_split;
+    selectedRole;
+
   document.formst.target = "_blank"; // Open in a new window
   document.formst.submit(); // Submit the page
   return true;
 }
 
 function excelSuiviPayementCtb(annee) {
-  contr_created_at_month = $("#contr_created_at_select").val() ?? 1;
-  selection_split = $("#contr_split_select").val() ?? 1;
-
   date1 = $("#date1").val();
   contribuable = $("#contribuable").val();
   date2 = $("#date2").val();
   filtrage = $("#filtrage").val();
+  selectedRole = $("#suivi_payment_role_select").val() ?? null;
 
   if (contribuable == "") {
     contribuable = "all";
@@ -3240,9 +3232,7 @@ function excelSuiviPayementCtb(annee) {
     "/" +
     filtrage +
     "/" +
-    contr_created_at_month +
-    "/" +
-    selection_split;
+    selectedRole;
 
   document.formst.target = "_blank"; // Open in a new window
   document.formst.submit(); // Submit the page

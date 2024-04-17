@@ -34,23 +34,18 @@ class ExportContribuable implements FromView,ShouldAutoSize
     public $date2;
     public $filtrage;
     public $role;
-    public $contr_created_at_month;
-    public $selected_split;
-
     private $restmontrecouv = 0;
 
 
-    public function __construct($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month, $selected_split)
+    public function __construct($annee,$contr,$date1,$date2, $filtrage , $role)
     {
         $this->annee=$annee;
         $this->contr=$contr;
         $this->date1=$date1;
         $this->date2=$date2;
         $this->filtrage=$filtrage;
-        $this->role = 'all';
+        $this->role = $role;
 
-        $this->contr_created_at_month = $contr_created_at_month;
-        $this->selected_split = $selected_split;
     }
 
     public function view():View
@@ -83,7 +78,7 @@ class ExportContribuable implements FromView,ShouldAutoSize
         $html = '';
         $html .= $enetet;
 
-        if ($this->contr != 'all' or ($this->date1 != 'all' and $this->date2 != 'all'))
+        if ($this->contr != 'all' or ($this->date1 != 'all' and $this->date2 != 'all') or $this->role != 'all')
         {
             $html .= '<div >
                  <table width="100%" >
@@ -93,7 +88,16 @@ class ExportContribuable implements FromView,ShouldAutoSize
             if ($this->contr != 'all') {
                 $html .= '' . trans("text_me.contribuable") . ' :<b>' . $contribuable .'</b>';
             }
+            if ($this->role != 'all') {
+                $roleLi = RolesAnnee::find($this->role)->libelle;
+                if ($roleLi != null) {
+                    // insert a new line 
+                    $html .= "<b>" . $roleLi . "</b>";
+                }
+            }
             if ($this->date1 != 'all' and $this->date2 != 'all') {
+                $html .= "<br>";
+
                 $html .= ' ' . trans("text_me.Du") . ' <b>' . Carbon::parse($this->date1)->format('d-m-Y').'</b>';
                 $html .= ' ' . trans("text_me.Au") . ' <b>' .  Carbon::parse($this->date2)->format('d-m-Y').'</b>';
             }
@@ -183,22 +187,29 @@ class ExportContribuable implements FromView,ShouldAutoSize
             </tr>
             </thead>
             <tbody>';
-            $selected_split = $this->selected_split == "all" ? 1 : $this->selected_split;
 
-            $start = ($selected_split - 1) * 500;
 
-            $contribuables = Contribuable::whereIn('id', function($query) {
+       
+
+            $contribuables = Contribuable::selectRaw("contribuables.*")->whereIn('contribuables.id', function($query)  {
                 $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $this->annee);
-            })->with(['roles' => function ($query) {
-                $query->where('annee', $this->annee);
-                if ($this->role != 'all') {
-                    $query->where('id', $this->role);
-                }
-            }])
-            ->whereMonth('created_at', $this->contr_created_at_month)
-            ->skip($start)
-            ->take(500)
-            ->get();
+            });
+           
+            if ($this->role != "all"){
+                $contribuables = $contribuables->leftJoin('roles_contribuables', 'roles_contribuables.contribuable_id', '=', 'contribuables.id')
+               ->where('roles_contribuables.role_id', $this->role);
+            }
+            
+            if ($this->date1 != 'all'){
+                
+                $contribuables = $contribuables->where('contribuables.created_at','>=', $this->date1);
+            }
+            if ($this->date2 != "all"){
+                $contribuables = $contribuables->where('contribuables.created_at','<=', $this->date2);
+            }
+
+            $contribuables = $contribuables->get();
+            
             foreach ($contribuables as $contribuable)
             {
             //     if ($role !='all')

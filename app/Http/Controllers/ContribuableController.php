@@ -1501,11 +1501,13 @@ public function insertEcheance($protocol,$date,$montant)
         $annee=$this->annee_encours();
         // $contribuables = Contribuable::whereIn('id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))->get();
         $mois=Mois::all();
+        $roles = App\Models\RolesAnnee::where('annee', $annee)->get();
+
         $month_counts = [];
         for ($i=1; $i<=12; $i++){
             $month_counts[$i] = $this->get_contrubiable_count($annee, $i);
         }
-        return view($this->module . '.ajax.filtrage', ['annee' => $annee ,'mois' => $mois,'module' => $module, 'month_counts' => $month_counts]);
+        return view($this->module . '.ajax.filtrage', ['annee' => $annee ,'mois' => $mois,'module' => $module, 'month_counts' => $month_counts,'roles' => $roles]); 
     }
 
     public function get_contrubiable_count($annee, $mois){
@@ -1515,6 +1517,31 @@ public function insertEcheance($protocol,$date,$montant)
         return $ret ?? 0;
     }
 
+    public function get_suivi_count($type, $annee, $role = "all", $date1 = "all", $date2 = "all"){
+        if ($type == 1){
+
+        }else if ($type == 2){
+
+        }
+        else if ($type ==3){
+            $ret = Contribuable::whereIn('id', function($query) use ($annee) {
+                $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $annee);
+            })->with(['roles' => function ($query) use ($annee, $role) {
+                $query->where('annee', $annee);
+                if ($role != 'all') {
+                    $query->where('id', $role);
+                }
+            }]);
+
+            if ($date1 != 'all'){
+                $contribuables = $contribuables->where('created_at','>=', $date1);
+            }
+            if ($date2 != "all"){
+                $contribuables = $contribuables->where('created_at','<=', $date2);
+            }
+            return $ret->count();
+        }
+    }
     public function  get_contr_count_range($startDate, $endDate) {  
         $ret = Contribuable::whereIn('contribuables.id',ContribuablesAnnee::where('annee', $annee)->pluck('contribuable_id'))
         ->whereBetween('contribuables.created_at', [$startDate, $endDate])->count();
@@ -1591,7 +1618,7 @@ public function insertEcheance($protocol,$date,$montant)
             ->make(true);
     }
 
-    public function pdfSuiviPayementCtb($annee,$filtrage,$date1,$date2,$role='all', $contr_created_at_month = "all", $selected_split = "all")
+    public function pdfSuiviPayementCtb($annee,$filtrage,$date1,$date2,$role='all')
     {
         if ($filtrage==1)
         {
@@ -1740,7 +1767,15 @@ public function insertEcheance($protocol,$date,$montant)
         }
         if ($filtrage==2)
         {
-            $payements = App\Models\DegrevementContribuable::where('annee', $annee)->where('montant','<>',0)->where('created_at','>=', $date1)->where('created_at','<=', $date2)->orderBy('created_at', 'desc')->get();
+            $payements = App\Models\DegrevementContribuable::where('annee', $annee)->where('montant','<>',0);
+            if ($date1 != "all"){
+                $payements = $payements->where('created_at','>=', $date1);
+            }
+            if ($date2 != "all"){
+                $payements = $payements->where('created_at','<=', $date2);
+            }
+
+            $payements = $payements ->orderBy('created_at', 'desc')->get();
             $idc = env('APP_COMMUNE');
             $commune = Commune::find($idc);
             $entete_id = EnteteCommune::where('commune_id', $idc)->get()->first()->id;
@@ -1809,46 +1844,25 @@ public function insertEcheance($protocol,$date,$montant)
         if ($filtrage==3)
         {
             $libelleRole='';
-            $start_time_contr  = Carbon::now();
-
-            // $contribuables =Contribuable::all();
+            $contribuables = Contribuable::selectRaw("contribuables.*")->whereIn('contribuables.id', function($query) use ($annee) {
+                $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $annee);
+            });
+           
+            if ($role != "all"){
+                $contribuables = $contribuables->leftJoin('roles_contribuables', 'roles_contribuables.contribuable_id', '=', 'contribuables.id')
+               ->where('roles_contribuables.role_id', $role);
+            }
             
-            // $contribuables = Contribuable::with(['roles' => function ($query) use ($annee, $role) {
-            //     $query->where('annee', $annee);
-            //     if ($role != 'all') {
-            //         $query->where('id', $role);
-            //     }
-            // }])
-            
-            // ->whereMonth('created_at', $contr_created_at_month)
-        
-            // // ->take(100)
-            // ->get();
-            $selected_split = $selected_split == "all" ? 1 : $selected_split;
-            
-            $start = ($selected_split - 1) * 500;
-            $total_count = $this->get_contrubiable_count($annee ,$contr_created_at_month);
-            $total_split = ceil($total_count / 500);
-            if ($total_split == 0) {
-                $total_split = 1;
+            if ($date1 != 'all'){
+                
+                $contribuables = $contribuables->where('contribuables.created_at','>=', $date1);
+            }
+            if ($date2 != "all"){
+                $contribuables = $contribuables->where('contribuables.created_at','<=', $date2);
             }
 
-            $contribuables = Contribuable::whereIn('id', function($query) use ($annee) {
-                $query->select('contribuable_id')->from('contribuables_annees')->where('annee', $annee);
-            })->with(['roles' => function ($query) use ($annee, $role) {
-                $query->where('annee', $annee);
-                if ($role != 'all') {
-                    $query->where('id', $role);
-                }
-            }])
-            ->whereMonth('created_at', $contr_created_at_month)
-            ->skip($start)
-            ->take(500)
-            ->get();
-            
+            $contribuables = $contribuables->get();
 
-            $end_time_contr = Carbon::now();
-            $time_contr = $end_time_contr->diffInSeconds($start_time_contr);
 
             $idc = env('APP_COMMUNE');
             $commune = Commune::find($idc);
@@ -1874,15 +1888,6 @@ public function insertEcheance($protocol,$date,$montant)
                 }
 
             }
-            if($filtrage == 3) {
-                $html .= '<br>Année : <b>' . $annee . '</b>';
-            if($contr_created_at_month != "all"){
-                $html .= '<br>Mois : <b>' . Mois::find($contr_created_at_month)->libelle . '</b>';
-            }
-            if($selected_split != "all"){
-                $html .= '<br>partie : <b>' . $selected_split . "/" . $total_split .  '</b>';
-            }
-        }
 
             $html .= $libelleRole;
             $html .= '</td>
@@ -1925,40 +1930,14 @@ public function insertEcheance($protocol,$date,$montant)
                         </td>
                     </tr>
                     ';
-            $montants =0;
-        //    dd($contribuables);
             $start_time_loop  = Carbon::now();
             foreach ($contribuables as $contribuable)
             {
-            //     if ($role !='all')
-            //     {
-            //         $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
-            //                 where('annee', $annee)->where('id', $role)->get();
-            //     }
-            //     else{
-            //         $roles = App\Models\RolesContribuable::where('contribuable_id', $contribuable->id)->
-            //         where('annee', $annee)->get();
-            //   }
-
-                $montantresr=$montantde=$montant_paye=$montantdgr=0;
-
-                // foreach ($roles as $rol){
-                foreach ($contribuable->roles as $rol){
-                    $montantde +=$rol->montant;
-                    $montant_paye += $rol->montant_paye;
-                }
-
-                $montantresr = $montantde-$montant_paye;
-
-                //if ($montantresr>0){
-                    $montants +=$montantresr;
-                   // if ($contribuable->id !=72)
-                    $html .=$this->contribuablePartie($contribuable->id,$annee,$montantresr,$role);
-                    // $html .= $contribuable->id;
+                $html .=$this->contribuablePartie($contribuable->id,$annee);
+               
                // }
             }
-            $end_time_loop = Carbon::now();
-            $time_loop = $end_time_loop->diffInMilliseconds($start_time_loop);
+            // dd($ii);
             // dd(
             //     "{
             //     'time_contr' => $time_contr,
@@ -1993,7 +1972,7 @@ public function insertEcheance($protocol,$date,$montant)
     
     }
 
-    public function contribuablePartie($id,$annee,$montantresr,$role)
+    public function contribuablePartie($id,$annee)
     {
         $contribuable = Contribuable::find($id);
         $impots = 'CF';
@@ -2235,8 +2214,11 @@ public function insertEcheance($protocol,$date,$montant)
        return $html;
         }
     }
-    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month, $selected_split)
-    {   $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
+
+
+    public function excelSuiviPayementCtb($annee,$contr,$date1,$date2, $filtrage, $role='all')
+    {   
+        $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
         if ($filtrage==1){
            $name = ''.trans("text_me.suiviContribuable1").'.xlsx';
         }
@@ -2245,7 +2227,7 @@ public function insertEcheance($protocol,$date,$montant)
         }else if ($filtrage==3){
             $name = ''.trans("suivirecouvrement").'.xlsx';
         }
-        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage, $contr_created_at_month, $selected_split), $name);
+        return Excel::download(new ExportContribuable($annee,$contr,$date1,$date2, $filtrage, $role ), $name);
     }
 
     public function exporterListeprotocolEch(){
