@@ -105,10 +105,10 @@
           @endforeach
        </select>
        {{-- <span class="bg-warning"> {{cal_days_in_month(CAL_GREGORIAN, $month, $year)}}</span> --}}
-       <div class="mb-1 mt-3">
+       {{-- <div class="mb-1 mt-3">
         Mois
-</div>
-        <select class="selectpicker mr-sm-2" onchange="changeSelectedStatsDate()" id="stats_month_select">
+</div>   --}}
+        {{-- <select class="selectpicker mr-sm-2" onchange="changeSelectedStatsDate()" id="stats_month_select">
           <option value="{{null}}" @if(null == $month) selected @endif>Tout</option>
           @for ($i = 1; $i <= 12; $i++)
             <option value="{{$i}}" @if($i == $month) selected @endif>{{$i}}</option>
@@ -124,7 +124,7 @@
        <option value="{{$i}}" @if($i == $day) selected @endif>{{$i}}</option>
      @endfor
       @endif
-        </select>
+        </select> --}}
 {{--         
            @if ($month != null && $day != null)
            <div class="d-flex flex-row">

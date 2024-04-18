@@ -110,24 +110,24 @@ class HomeController extends Controller
       ->sum('total_payment');
         return $ret ?? 0;
 
-          $totalAmountToPay = Contribuable::selectRaw('(SUM(roles_contribuables.montant) - SUM(degrevement_contribuables.montant) - SUM(details_payementmens.montant) ) AS total_amount_to_pay')
-        ->leftJoin('roles_contribuables', function ($join) use ($annee) {
-            $join->on('contribuables.id', '=', 'roles_contribuables.contribuable_id')
-                 ->where('roles_contribuables.annee', $annee);
-        })
-        ->leftJoin('payementmens', function ($join) use ($annee) {
-            $join->on('contribuables.id', '=', 'payementmens.contribuable_id')
-                 ->where('payementmens.annee', $annee);
-        })
-        ->leftJoin('details_payementmens', function ($join) use ($annee){
-            $join->on('payementmens.id', '=', 'details_payementmens.payement_id')
-                 ->where('payementmens.annee', $annee);
-        })
-        ->leftJoin('degrevement_contribuables', function ($join) use ($annee) {
-            $join->on('contribuables.id', '=', 'degrevement_contribuables.contribuable_id')
-                 ->where('degrevement_contribuables.annee', $annee);
-        })
-        ->value('total_amount_to_pay');
+        //   $totalAmountToPay = Contribuable::selectRaw('(SUM(roles_contribuables.montant) - SUM(degrevement_contribuables.montant) - SUM(details_payementmens.montant) ) AS total_amount_to_pay')
+        // ->leftJoin('roles_contribuables', function ($join) use ($annee) {
+        //     $join->on('contribuables.id', '=', 'roles_contribuables.contribuable_id')
+        //          ->where('roles_contribuables.annee', $annee);
+        // })
+        // ->leftJoin('payementmens', function ($join) use ($annee) {
+        //     $join->on('contribuables.id', '=', 'payementmens.contribuable_id')
+        //          ->where('payementmens.annee', $annee);
+        // })
+        // ->leftJoin('details_payementmens', function ($join) use ($annee){
+        //     $join->on('payementmens.id', '=', 'details_payementmens.payement_id')
+        //          ->where('payementmens.annee', $annee);
+        // })
+        // ->leftJoin('degrevement_contribuables', function ($join) use ($annee) {
+        //     $join->on('contribuables.id', '=', 'degrevement_contribuables.contribuable_id')
+        //          ->where('degrevement_contribuables.annee', $annee);
+        // })
+        // ->value('total_amount_to_pay');
     }
 
     public function selectModule($module_id)

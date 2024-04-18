@@ -208,7 +208,7 @@ class ExportContribuable implements FromView,ShouldAutoSize
                 $contribuables = $contribuables->where('contribuables.created_at','<=', $this->date2);
             }
 
-            $contribuables = $contribuables->get();
+            $contribuables = $contribuables->distinct()->get();
             
             foreach ($contribuables as $contribuable)
             {
@@ -243,7 +243,7 @@ class ExportContribuable implements FromView,ShouldAutoSize
         }
         $html .='<tr>';
         $html .='<td colspan="2" align=""><b>'. trans("text_me.total") .'</b></td>';
-        $html .='<td><b>'.number_format((float)$montants,2).'</b></td>';
+        $html .='<td><b>'.number_format((float)$this->restmontrecouv,2).'</b></td>';
         $html .='</tr>';
         $html .='</tbody>
         </table>';
@@ -259,7 +259,11 @@ class ExportContribuable implements FromView,ShouldAutoSize
         $nbrroles=0;
         $montantdue = 0;$articles='';
         $roles = RolesContribuable::where('contribuable_id', $id)->
-        where('annee', $annee)->get();
+        where('annee', $annee);
+        if ($role != "all" ){
+            $roles = $roles->where('role_id', $role);
+        }
+        $roles = $roles->get();
         $degrevements = DegrevementContribuable::where('contribuable_id', $id)->where('annee', $annee)->get();
         // foreach ($degrevements as $deg)
         // {
@@ -320,21 +324,25 @@ class ExportContribuable implements FromView,ShouldAutoSize
 
         $montantdegr = 0;
         $motantPayes = 0;
+        
         $annee_id = Annee::where('etat', 1)->get()->first()->id;
-        $payements = Payement::where('contribuable_id', $id)->where('annee', $annee)->get();
-        $payementNrs = Payementmens::where('contribuable_id', $id)->where('annee', $annee)->get();
-        foreach ($payements as $payement) {
-            $detatPays = DetailsPayement::where('payement_id', $payement->id)->get();
-            foreach ($detatPays as $detatPa) {
-                $motantPayes += $detatPa->montant;
-            }
+        $payementNrs = Payementmens::where('contribuable_id', $contribuable->id)->where('annee', $annee);
+        if ($this->role != "all"){
+            $payementNrs = $payementNrs->where('role_id', 27);
         }
+        $payementNrs = $payementNrs->get();
+        // if  ($id  = 4193){
+        //     dd($contribuable->libelle);
+        // }
+    
         foreach ($payementNrs as $payement) {
-            $detatPays = DetailsPayementmens::where('payement_id', $payement->id)->get();
-            foreach ($detatPays as $detatPa) {
-                $motantPayes += $detatPa->montant;
-            }
+            $motantPayes = $motantPayes + $payement->montant;
+            // $detatPays = DetailsPayementmens::where('payement_id', $payement->id)->get();
+            // foreach ($detatPays as $detatPa) {
+            //     $motantPayes += $detatPa->montant;
+            // }
         }
+
         if ($degrevements->count()>0){
             foreach ($degrevements as $degrevement) {
                 $montantdegr += $degrevement->montant;

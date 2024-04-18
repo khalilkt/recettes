@@ -1860,8 +1860,7 @@ public function insertEcheance($protocol,$date,$montant)
             if ($date2 != "all"){
                 $contribuables = $contribuables->where('contribuables.created_at','<=', $date2);
             }
-
-            $contribuables = $contribuables->get();
+            $contribuables = $contribuables->distinct()->get();
 
 
             $idc = env('APP_COMMUNE');
@@ -1930,7 +1929,7 @@ public function insertEcheance($protocol,$date,$montant)
             $start_time_loop  = Carbon::now();
             foreach ($contribuables as $contribuable)
             {
-                $html .=$this->contribuablePartie($contribuable->id,$annee);
+                $html .=$this->contribuablePartie($contribuable->id,$annee, $role);
                
                // }
             }
@@ -1969,14 +1968,18 @@ public function insertEcheance($protocol,$date,$montant)
     
     }
 
-    public function contribuablePartie($id,$annee)
+    public function contribuablePartie($id,$annee, $roleId = "all")
     {
         $contribuable = Contribuable::find($id);
         $impots = 'CF';
         $nbrroles=0;
         $montantdue = 0;$articles='';
         $roles = App\Models\RolesContribuable::where('contribuable_id', $id)->
-        where('annee', $annee)->get();
+        where('annee', $annee);
+        if ($roleId  != "all" ){
+            $roles = $roles->where('role_id', $roleId);
+        }
+        $roles = $roles->get();
         $degrevements = App\Models\DegrevementContribuable::where('contribuable_id', $id)->where('annee', $annee)->get();
         // foreach ($degrevements as $deg)
         // {
@@ -2037,7 +2040,12 @@ public function insertEcheance($protocol,$date,$montant)
         $motantPayes = 0;
         $annee_id = Annee::where('etat', 1)->get()->first()->id;
         $payements = Payement::where('contribuable_id', $id)->where('annee', $annee)->get();
-        $payementNrs = App\Models\Payementmens::where('contribuable_id', $id)->where('annee', $annee)->get();
+        $payementNrs = App\Models\Payementmens::where('contribuable_id', $id)->where('annee', $annee);
+        if  ($roleId != "all"){
+            $payementNrs = $payementNrs->where('role_id', $roleId);
+        }
+        
+        $payementNrs = $payementNrs ->get();
         foreach ($payements as $payement) {
             $detatPays = DetailsPayement::where('payement_id', $payement->id)->get();
             foreach ($detatPays as $detatPa) {
