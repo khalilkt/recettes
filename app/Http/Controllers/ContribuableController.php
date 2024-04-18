@@ -1916,7 +1916,7 @@ public function insertEcheance($protocol,$date,$montant)
                             <b>Rôle</b>
                         </td>
                         <td style="width:10% ;" >
-                            <b>Montant due</b>
+                            <b>Montant</b>
                         </td>
                         <td style="width:10% ;" >
                             <b>Degrevement </b>
